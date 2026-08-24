@@ -9,7 +9,7 @@ import '../../providers/checklist_providers.dart';
 import '../../providers/date_provider.dart';
 import '../calendar/calendar_page.dart';
 import '../edit_task/edit_task_page.dart';
-import 'widgets/add_task_bar.dart';
+import 'widgets/add_task_sheet.dart';
 import 'widgets/checklist_item_tile.dart';
 import 'widgets/completion_celebration.dart';
 import 'widgets/progress_ring.dart';
@@ -63,9 +63,10 @@ class HomePage extends ConsumerWidget {
                 Expanded(
                   child: items.isEmpty
                       ? const Center(
-                          child: Text('No tasks yet. Add one below!'),
+                          child: Text('No tasks yet. Tap + to add one!'),
                         )
                       : ListView.builder(
+                          padding: const EdgeInsets.only(bottom: 88),
                           itemCount: items.length,
                           itemBuilder: (context, index) {
                             final item = items[index];
@@ -122,11 +123,14 @@ class HomePage extends ConsumerWidget {
                           },
                         ),
                 ),
-                AddTaskBar(onAdd: repository.addTask),
               ],
             ),
           );
         },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => AddTaskSheet.show(context, repository: repository),
+        child: const Icon(Icons.add),
       ),
     );
   }

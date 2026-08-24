@@ -1,5 +1,7 @@
 import 'package:daylist/data/database/app_database.dart';
 import 'package:daylist/data/repositories/checklist_repository.dart';
+import 'package:daylist/domain/models/task_category.dart';
+import 'package:drift/drift.dart' hide isNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -18,9 +20,13 @@ void main() {
 
   final today = DateTime(2026, 3, 5);
 
+  Future<void> addTask(String title, {TaskCategory category = TaskCategory.other}) {
+    return repository.addTask(title: title, category: category);
+  }
+
   test('adding tasks assigns increasing sortOrder', () async {
-    await repository.addTask('Meditate');
-    await repository.addTask('Read');
+    await addTask('Meditate');
+    await addTask('Read');
 
     final tasks = await db.select(db.tasks).get();
     tasks.sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
@@ -30,13 +36,49 @@ void main() {
   });
 
   test('ignores blank titles', () async {
-    await repository.addTask('   ');
+    await addTask('   ');
     final tasks = await db.select(db.tasks).get();
     expect(tasks, isEmpty);
   });
 
+  test('defaults to TaskCategory.other and stores a chosen category', () async {
+    await addTask('Meditate');
+    await repository.addTask(title: 'Standup', category: TaskCategory.work);
+
+    final tasks = await db.select(db.tasks).get();
+    final meditate = tasks.firstWhere((t) => t.title == 'Meditate');
+    final standup = tasks.firstWhere((t) => t.title == 'Standup');
+    expect(meditate.category, TaskCategory.other);
+    expect(standup.category, TaskCategory.work);
+  });
+
+  test('stores an optional reminder time and updateTask can change it', () async {
+    await repository.addTask(
+      title: 'Meditate',
+      category: TaskCategory.health,
+      reminderMinuteOfDay: 9 * 60,
+    );
+    final task = (await db.select(db.tasks).get()).single;
+    expect(task.reminderMinuteOfDay, 9 * 60);
+
+    await repository.updateTask(taskId: task.id, reminderMinuteOfDay: const Value(null));
+    final updated = (await db.select(db.tasks).get()).single;
+    expect(updated.reminderMinuteOfDay, isNull);
+  });
+
+  test('updateTask leaves fields unspecified untouched', () async {
+    await repository.addTask(title: 'Meditate', category: TaskCategory.health);
+    final task = (await db.select(db.tasks).get()).single;
+
+    await repository.updateTask(taskId: task.id, title: 'Meditate daily');
+
+    final updated = (await db.select(db.tasks).get()).single;
+    expect(updated.title, 'Meditate daily');
+    expect(updated.category, TaskCategory.health);
+  });
+
   test('toggling on then off leaves no completion row', () async {
-    await repository.addTask('Meditate');
+    await addTask('Meditate');
     final task = (await db.select(db.tasks).get()).single;
 
     await repository.toggleCompletion(
@@ -57,7 +99,7 @@ void main() {
   });
 
   test('double toggle-on does not violate the unique key', () async {
-    await repository.addTask('Meditate');
+    await addTask('Meditate');
     final task = (await db.select(db.tasks).get()).single;
 
     await repository.toggleCompletion(
@@ -78,7 +120,7 @@ void main() {
   });
 
   test('archiveTask removes from active watch but keeps history', () async {
-    await repository.addTask('Meditate');
+    await addTask('Meditate');
     final task = (await db.select(db.tasks).get()).single;
     await repository.toggleCompletion(
       taskId: task.id,
@@ -96,7 +138,7 @@ void main() {
   });
 
   test('watchChecklistForDate only marks the queried date as done', () async {
-    await repository.addTask('Meditate');
+    await addTask('Meditate');
     final task = (await db.select(db.tasks).get()).single;
 
     await repository.toggleCompletion(

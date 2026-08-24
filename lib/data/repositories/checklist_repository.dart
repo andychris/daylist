@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 
 import '../../domain/date_utils.dart';
 import '../../domain/models/checklist_item.dart';
+import '../../domain/models/task_category.dart';
 import '../database/app_database.dart';
 
 class ChecklistRepository {
@@ -31,6 +32,8 @@ class ChecklistRepository {
           title: task.title,
           isDoneToday: completion != null,
           sortOrder: task.sortOrder,
+          category: task.category,
+          reminderMinuteOfDay: task.reminderMinuteOfDay,
         );
       }).toList();
 
@@ -44,7 +47,11 @@ class ChecklistRepository {
     });
   }
 
-  Future<void> addTask(String title) async {
+  Future<void> addTask({
+    required String title,
+    required TaskCategory category,
+    int? reminderMinuteOfDay,
+  }) async {
     final trimmed = title.trim();
     if (trimmed.isEmpty) return;
 
@@ -60,9 +67,29 @@ class ChecklistRepository {
             TasksCompanion.insert(
               title: trimmed,
               sortOrder: (maxOrder ?? 0) + 1000,
+              category: Value(category),
+              reminderMinuteOfDay: Value(reminderMinuteOfDay),
             ),
           );
     });
+  }
+
+  /// Updates an existing task. Omitted parameters leave that field
+  /// unchanged; pass [reminderMinuteOfDay] as `Value(null)` to explicitly
+  /// clear a reminder (vs. `Value.absent()`, the default, to leave it as-is).
+  Future<void> updateTask({
+    required int taskId,
+    String? title,
+    TaskCategory? category,
+    Value<int?> reminderMinuteOfDay = const Value.absent(),
+  }) async {
+    await (_db.update(_db.tasks)..where((t) => t.id.equals(taskId))).write(
+      TasksCompanion(
+        title: title != null ? Value(title.trim()) : const Value.absent(),
+        category: category != null ? Value(category) : const Value.absent(),
+        reminderMinuteOfDay: reminderMinuteOfDay,
+      ),
+    );
   }
 
   Future<void> toggleCompletion({

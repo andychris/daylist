@@ -93,6 +93,8 @@ class HistoryRepository {
               title: task.title,
               isDoneToday: completion != null,
               sortOrder: task.sortOrder,
+              category: task.category,
+              reminderMinuteOfDay: task.reminderMinuteOfDay,
             );
           })
           .toList();

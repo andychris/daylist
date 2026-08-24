@@ -8,6 +8,14 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../test_utils.dart';
 
+Future<void> _addTaskViaSheet(WidgetTester tester, String title) async {
+  await tester.tap(find.byIcon(Icons.add));
+  await tester.pumpAndSettle();
+  await tester.enterText(find.byType(TextField), title);
+  await tester.tap(find.text('Add task'));
+  await tester.pumpAndSettle();
+}
+
 void main() {
   testWidgets('add a task and see it appear', (tester) async {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
@@ -21,9 +29,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.byType(TextField), 'Buy milk');
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pumpAndSettle();
+    await _addTaskViaSheet(tester, 'Buy milk');
 
     expect(find.text('Buy milk'), findsOneWidget);
     expect(find.text('0/1'), findsOneWidget);
@@ -43,9 +49,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.byType(TextField), 'Buy milk');
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pumpAndSettle();
+    await _addTaskViaSheet(tester, 'Buy milk');
 
     // Toggling this task completes 1/1, which triggers the confetti
     // celebration. confetti-0.8.0's animation controller re-loops until its
@@ -74,9 +78,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.byType(TextField), 'Buy milk');
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pumpAndSettle();
+    await _addTaskViaSheet(tester, 'Buy milk');
 
     await tester.drag(find.text('Buy milk'), const Offset(-500, 0));
     await tester.pumpAndSettle();

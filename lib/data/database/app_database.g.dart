@@ -69,12 +69,34 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, TaskRow> {
     requiredDuringInsert: true,
   );
   @override
+  late final GeneratedColumnWithTypeConverter<TaskCategory, String> category =
+      GeneratedColumn<String>(
+        'category',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('other'),
+      ).withConverter<TaskCategory>($TasksTable.$convertercategory);
+  static const VerificationMeta _reminderMinuteOfDayMeta =
+      const VerificationMeta('reminderMinuteOfDay');
+  @override
+  late final GeneratedColumn<int> reminderMinuteOfDay = GeneratedColumn<int>(
+    'reminder_minute_of_day',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  @override
   List<GeneratedColumn> get $columns => [
     id,
     title,
     createdAt,
     archivedAt,
     sortOrder,
+    category,
+    reminderMinuteOfDay,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -119,6 +141,15 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, TaskRow> {
     } else if (isInserting) {
       context.missing(_sortOrderMeta);
     }
+    if (data.containsKey('reminder_minute_of_day')) {
+      context.handle(
+        _reminderMinuteOfDayMeta,
+        reminderMinuteOfDay.isAcceptableOrUnknown(
+          data['reminder_minute_of_day']!,
+          _reminderMinuteOfDayMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -148,6 +179,16 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, TaskRow> {
         DriftSqlType.double,
         data['${effectivePrefix}sort_order'],
       )!,
+      category: $TasksTable.$convertercategory.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}category'],
+        )!,
+      ),
+      reminderMinuteOfDay: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}reminder_minute_of_day'],
+      ),
     );
   }
 
@@ -155,6 +196,9 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, TaskRow> {
   $TasksTable createAlias(String alias) {
     return $TasksTable(attachedDatabase, alias);
   }
+
+  static TypeConverter<TaskCategory, String> $convertercategory =
+      const TaskCategoryConverter();
 }
 
 class TaskRow extends DataClass implements Insertable<TaskRow> {
@@ -163,12 +207,16 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
   final DateTime createdAt;
   final DateTime? archivedAt;
   final double sortOrder;
+  final TaskCategory category;
+  final int? reminderMinuteOfDay;
   const TaskRow({
     required this.id,
     required this.title,
     required this.createdAt,
     this.archivedAt,
     required this.sortOrder,
+    required this.category,
+    this.reminderMinuteOfDay,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -180,6 +228,14 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       map['archived_at'] = Variable<DateTime>(archivedAt);
     }
     map['sort_order'] = Variable<double>(sortOrder);
+    {
+      map['category'] = Variable<String>(
+        $TasksTable.$convertercategory.toSql(category),
+      );
+    }
+    if (!nullToAbsent || reminderMinuteOfDay != null) {
+      map['reminder_minute_of_day'] = Variable<int>(reminderMinuteOfDay);
+    }
     return map;
   }
 
@@ -192,6 +248,10 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
           ? const Value.absent()
           : Value(archivedAt),
       sortOrder: Value(sortOrder),
+      category: Value(category),
+      reminderMinuteOfDay: reminderMinuteOfDay == null && nullToAbsent
+          ? const Value.absent()
+          : Value(reminderMinuteOfDay),
     );
   }
 
@@ -206,6 +266,10 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       archivedAt: serializer.fromJson<DateTime?>(json['archivedAt']),
       sortOrder: serializer.fromJson<double>(json['sortOrder']),
+      category: serializer.fromJson<TaskCategory>(json['category']),
+      reminderMinuteOfDay: serializer.fromJson<int?>(
+        json['reminderMinuteOfDay'],
+      ),
     );
   }
   @override
@@ -217,6 +281,8 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'archivedAt': serializer.toJson<DateTime?>(archivedAt),
       'sortOrder': serializer.toJson<double>(sortOrder),
+      'category': serializer.toJson<TaskCategory>(category),
+      'reminderMinuteOfDay': serializer.toJson<int?>(reminderMinuteOfDay),
     };
   }
 
@@ -226,12 +292,18 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     DateTime? createdAt,
     Value<DateTime?> archivedAt = const Value.absent(),
     double? sortOrder,
+    TaskCategory? category,
+    Value<int?> reminderMinuteOfDay = const Value.absent(),
   }) => TaskRow(
     id: id ?? this.id,
     title: title ?? this.title,
     createdAt: createdAt ?? this.createdAt,
     archivedAt: archivedAt.present ? archivedAt.value : this.archivedAt,
     sortOrder: sortOrder ?? this.sortOrder,
+    category: category ?? this.category,
+    reminderMinuteOfDay: reminderMinuteOfDay.present
+        ? reminderMinuteOfDay.value
+        : this.reminderMinuteOfDay,
   );
   TaskRow copyWithCompanion(TasksCompanion data) {
     return TaskRow(
@@ -242,6 +314,10 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
           ? data.archivedAt.value
           : this.archivedAt,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      category: data.category.present ? data.category.value : this.category,
+      reminderMinuteOfDay: data.reminderMinuteOfDay.present
+          ? data.reminderMinuteOfDay.value
+          : this.reminderMinuteOfDay,
     );
   }
 
@@ -252,13 +328,23 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
           ..write('title: $title, ')
           ..write('createdAt: $createdAt, ')
           ..write('archivedAt: $archivedAt, ')
-          ..write('sortOrder: $sortOrder')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('category: $category, ')
+          ..write('reminderMinuteOfDay: $reminderMinuteOfDay')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, title, createdAt, archivedAt, sortOrder);
+  int get hashCode => Object.hash(
+    id,
+    title,
+    createdAt,
+    archivedAt,
+    sortOrder,
+    category,
+    reminderMinuteOfDay,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -267,7 +353,9 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
           other.title == this.title &&
           other.createdAt == this.createdAt &&
           other.archivedAt == this.archivedAt &&
-          other.sortOrder == this.sortOrder);
+          other.sortOrder == this.sortOrder &&
+          other.category == this.category &&
+          other.reminderMinuteOfDay == this.reminderMinuteOfDay);
 }
 
 class TasksCompanion extends UpdateCompanion<TaskRow> {
@@ -276,12 +364,16 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
   final Value<DateTime> createdAt;
   final Value<DateTime?> archivedAt;
   final Value<double> sortOrder;
+  final Value<TaskCategory> category;
+  final Value<int?> reminderMinuteOfDay;
   const TasksCompanion({
     this.id = const Value.absent(),
     this.title = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.archivedAt = const Value.absent(),
     this.sortOrder = const Value.absent(),
+    this.category = const Value.absent(),
+    this.reminderMinuteOfDay = const Value.absent(),
   });
   TasksCompanion.insert({
     this.id = const Value.absent(),
@@ -289,6 +381,8 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     this.createdAt = const Value.absent(),
     this.archivedAt = const Value.absent(),
     required double sortOrder,
+    this.category = const Value.absent(),
+    this.reminderMinuteOfDay = const Value.absent(),
   }) : title = Value(title),
        sortOrder = Value(sortOrder);
   static Insertable<TaskRow> custom({
@@ -297,6 +391,8 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     Expression<DateTime>? createdAt,
     Expression<DateTime>? archivedAt,
     Expression<double>? sortOrder,
+    Expression<String>? category,
+    Expression<int>? reminderMinuteOfDay,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -304,6 +400,9 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
       if (createdAt != null) 'created_at': createdAt,
       if (archivedAt != null) 'archived_at': archivedAt,
       if (sortOrder != null) 'sort_order': sortOrder,
+      if (category != null) 'category': category,
+      if (reminderMinuteOfDay != null)
+        'reminder_minute_of_day': reminderMinuteOfDay,
     });
   }
 
@@ -313,6 +412,8 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     Value<DateTime>? createdAt,
     Value<DateTime?>? archivedAt,
     Value<double>? sortOrder,
+    Value<TaskCategory>? category,
+    Value<int?>? reminderMinuteOfDay,
   }) {
     return TasksCompanion(
       id: id ?? this.id,
@@ -320,6 +421,8 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
       createdAt: createdAt ?? this.createdAt,
       archivedAt: archivedAt ?? this.archivedAt,
       sortOrder: sortOrder ?? this.sortOrder,
+      category: category ?? this.category,
+      reminderMinuteOfDay: reminderMinuteOfDay ?? this.reminderMinuteOfDay,
     );
   }
 
@@ -341,6 +444,14 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     if (sortOrder.present) {
       map['sort_order'] = Variable<double>(sortOrder.value);
     }
+    if (category.present) {
+      map['category'] = Variable<String>(
+        $TasksTable.$convertercategory.toSql(category.value),
+      );
+    }
+    if (reminderMinuteOfDay.present) {
+      map['reminder_minute_of_day'] = Variable<int>(reminderMinuteOfDay.value);
+    }
     return map;
   }
 
@@ -351,7 +462,9 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
           ..write('title: $title, ')
           ..write('createdAt: $createdAt, ')
           ..write('archivedAt: $archivedAt, ')
-          ..write('sortOrder: $sortOrder')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('category: $category, ')
+          ..write('reminderMinuteOfDay: $reminderMinuteOfDay')
           ..write(')'))
         .toString();
   }
@@ -688,6 +801,8 @@ typedef $$TasksTableCreateCompanionBuilder = TasksCompanion Function({
   Value<DateTime> createdAt,
   Value<DateTime?> archivedAt,
   required double sortOrder,
+  Value<TaskCategory> category,
+  Value<int?> reminderMinuteOfDay,
 });
 typedef $$TasksTableUpdateCompanionBuilder = TasksCompanion Function({
   Value<int> id,
@@ -695,6 +810,8 @@ typedef $$TasksTableUpdateCompanionBuilder = TasksCompanion Function({
   Value<DateTime> createdAt,
   Value<DateTime?> archivedAt,
   Value<double> sortOrder,
+  Value<TaskCategory> category,
+  Value<int?> reminderMinuteOfDay,
 });
 
 final class $$TasksTableReferences
@@ -752,6 +869,17 @@ class $$TasksTableFilterComposer extends Composer<_$AppDatabase, $TasksTable> {
 
   ColumnFilters<double> get sortOrder => $composableBuilder(
     column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<TaskCategory, TaskCategory, String>
+  get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<int> get reminderMinuteOfDay => $composableBuilder(
+    column: $table.reminderMinuteOfDay,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -814,6 +942,16 @@ class $$TasksTableOrderingComposer
     column: $table.sortOrder,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get reminderMinuteOfDay => $composableBuilder(
+    column: $table.reminderMinuteOfDay,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$TasksTableAnnotationComposer
@@ -841,6 +979,14 @@ class $$TasksTableAnnotationComposer
 
   GeneratedColumn<double> get sortOrder =>
       $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<TaskCategory, String> get category =>
+      $composableBuilder(column: $table.category, builder: (column) => column);
+
+  GeneratedColumn<int> get reminderMinuteOfDay => $composableBuilder(
+    column: $table.reminderMinuteOfDay,
+    builder: (column) => column,
+  );
 
   Expression<T> taskCompletionsRefs<T extends Object>(
     Expression<T> Function($$TaskCompletionsTableAnnotationComposer a) f,
@@ -901,12 +1047,16 @@ class $$TasksTableTableManager
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime?> archivedAt = const Value.absent(),
                 Value<double> sortOrder = const Value.absent(),
+                Value<TaskCategory> category = const Value.absent(),
+                Value<int?> reminderMinuteOfDay = const Value.absent(),
               }) => TasksCompanion(
                 id: id,
                 title: title,
                 createdAt: createdAt,
                 archivedAt: archivedAt,
                 sortOrder: sortOrder,
+                category: category,
+                reminderMinuteOfDay: reminderMinuteOfDay,
               ),
           createCompanionCallback:
               ({
@@ -915,12 +1065,16 @@ class $$TasksTableTableManager
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime?> archivedAt = const Value.absent(),
                 required double sortOrder,
+                Value<TaskCategory> category = const Value.absent(),
+                Value<int?> reminderMinuteOfDay = const Value.absent(),
               }) => TasksCompanion.insert(
                 id: id,
                 title: title,
                 createdAt: createdAt,
                 archivedAt: archivedAt,
                 sortOrder: sortOrder,
+                category: category,
+                reminderMinuteOfDay: reminderMinuteOfDay,
               ),
           withReferenceMapper: (p0) => p0
               .map(
