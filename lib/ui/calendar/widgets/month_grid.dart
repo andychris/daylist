@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
-import '../../../domain/date_utils.dart';
 import '../../../domain/models/day_rings.dart';
 import 'day_cell.dart';
 
@@ -12,11 +11,13 @@ class MonthGrid extends StatelessWidget {
     super.key,
     required this.monthAnchor,
     required this.rings,
+    required this.today,
     required this.onDayTap,
   });
 
   final DateTime monthAnchor;
   final List<DayRings> rings;
+  final DateTime today;
   final ValueChanged<DateTime> onDayTap;
 
   @override
@@ -26,7 +27,6 @@ class MonthGrid extends StatelessWidget {
     // DateTime.weekday: Monday=1..Sunday=7; %7 turns that into a Sunday-first
     // offset (Sunday=0..Saturday=6) matching _weekdayLabels.
     final leadingBlanks = monthStart.weekday % 7;
-    final today = todayLocalMidnight();
 
     final ringsByDate = {for (final r in rings) r.date: r};
 
@@ -69,6 +69,7 @@ class MonthGrid extends StatelessWidget {
             return DayCell(
                   rings: dayRings,
                   isToday: date == today,
+                  isFuture: date.isAfter(today),
                   onTap: () => onDayTap(date),
                 )
                 .animate(delay: (12 * index).ms)

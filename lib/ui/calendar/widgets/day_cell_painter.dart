@@ -15,6 +15,7 @@ class DayCellPainter extends CustomPainter {
     required this.trackColor,
     required this.tintColor,
     required this.isToday,
+    required this.isFuture,
   });
 
   final double progressFraction;
@@ -23,9 +24,13 @@ class DayCellPainter extends CustomPainter {
   final Color trackColor;
   final Color tintColor;
   final bool isToday;
+  final bool isFuture;
 
   @override
   void paint(Canvas canvas, Size size) {
+    // A future day hasn't happened yet — no tint/ring/today-outline to show.
+    if (isFuture) return;
+
     final rect = Offset.zero & size;
     final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(12));
 
@@ -80,6 +85,7 @@ class DayCellPainter extends CustomPainter {
         oldDelegate.ringColor != ringColor ||
         oldDelegate.trackColor != trackColor ||
         oldDelegate.tintColor != tintColor ||
-        oldDelegate.isToday != isToday;
+        oldDelegate.isToday != isToday ||
+        oldDelegate.isFuture != isFuture;
   }
 }

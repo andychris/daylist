@@ -6,6 +6,9 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   // March 2026: 31 days, Mar 1 is a Sunday.
   final monthAnchor = DateTime(2026, 3, 15);
+  // The month's last day, so none of these tests' assertions are affected
+  // by the future-day short-circuit (that gets its own dedicated tests).
+  final monthEnd = DateTime(2026, 3, 31);
 
   DayRings ringsFor(List<DayRings> rings, DateTime date) =>
       rings.firstWhere((r) => r.date == date);
@@ -15,6 +18,7 @@ void main() {
       monthAnchor: monthAnchor,
       tasks: const [],
       completedCountsByDate: const {},
+      today: monthEnd,
     );
 
     expect(rings, hasLength(31));
@@ -33,6 +37,7 @@ void main() {
       monthAnchor: monthAnchor,
       tasks: [TaskLifespan(id: 1, createdAt: createdAt, archivedAt: null)],
       completedCountsByDate: const {},
+      today: monthEnd,
     );
 
     final beforeCreation = ringsFor(rings, DateTime(2026, 3, 5));
@@ -58,6 +63,7 @@ void main() {
         ),
       ],
       completedCountsByDate: const {},
+      today: monthEnd,
     );
 
     expect(ringsFor(rings, DateTime(2026, 3, 10)).hasGoal, isTrue);
@@ -78,6 +84,7 @@ void main() {
       monthAnchor: monthAnchor,
       tasks: tasks,
       completedCountsByDate: completedCountsByDate,
+      today: monthEnd,
     );
 
     // March 1's trailing 7-day window is Feb 23 - Mar 1: six completed days
@@ -100,11 +107,68 @@ void main() {
       monthAnchor: monthAnchor,
       tasks: tasks,
       completedCountsByDate: const {'2026-03-05': 1},
+      today: monthEnd,
     );
 
     final day = ringsFor(rings, DateTime(2026, 3, 5));
     expect(day.totalActive, 2);
     expect(day.completed, 1);
     expect(day.progressFraction, 0.5);
+  });
+
+  group('future days', () {
+    // "Today" is mid-month; days after it haven't happened yet.
+    final today = DateTime(2026, 3, 15);
+
+    test('a still-active task does not make a future day show a goal', () {
+      final rings = computeMonthRings(
+        monthAnchor: monthAnchor,
+        tasks: [
+          TaskLifespan(id: 1, createdAt: DateTime(2026, 3, 1), archivedAt: null),
+        ],
+        completedCountsByDate: const {},
+        today: today,
+      );
+
+      final future = ringsFor(rings, DateTime(2026, 3, 20));
+      expect(future.hasGoal, isFalse);
+      expect(future.totalActive, 0);
+      expect(future.completed, 0);
+      expect(future.progressFraction, 0.0);
+      expect(future.consistencyFraction, isNull);
+    });
+
+    test('today itself is computed normally, not treated as future', () {
+      final rings = computeMonthRings(
+        monthAnchor: monthAnchor,
+        tasks: [
+          TaskLifespan(id: 1, createdAt: DateTime(2026, 3, 1), archivedAt: null),
+        ],
+        completedCountsByDate: const {'2026-03-15': 1},
+        today: today,
+      );
+
+      final todayRings = ringsFor(rings, today);
+      expect(todayRings.hasGoal, isTrue);
+      expect(todayRings.totalActive, 1);
+      expect(todayRings.completed, 1);
+      expect(todayRings.progressFraction, 1.0);
+    });
+
+    test('a stray completion row for a future date is ignored', () {
+      final rings = computeMonthRings(
+        monthAnchor: monthAnchor,
+        tasks: [
+          TaskLifespan(id: 1, createdAt: DateTime(2026, 3, 1), archivedAt: null),
+        ],
+        completedCountsByDate: const {'2026-03-20': 1},
+        today: today,
+      );
+
+      final future = ringsFor(rings, DateTime(2026, 3, 20));
+      expect(future.hasGoal, isFalse);
+      expect(future.completed, 0);
+      expect(future.progressFraction, 0.0);
+    });
   });
 }

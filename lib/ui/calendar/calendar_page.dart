@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../providers/date_provider.dart';
 import '../../providers/history_providers.dart';
 import 'widgets/day_detail_sheet.dart';
 import 'widgets/month_grid.dart';
@@ -51,6 +52,7 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
   @override
   Widget build(BuildContext context) {
     final ringsAsync = ref.watch(monthRingsProvider(_visibleMonth));
+    final today = ref.watch(currentLocalDateProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -80,6 +82,7 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
           data: (rings) => MonthGrid(
             monthAnchor: _visibleMonth,
             rings: rings,
+            today: today,
             onDayTap: (date) {
               final dayRings = rings.firstWhere((r) => r.date == date);
               DayDetailSheet.show(context, dayRings);

@@ -7,6 +7,7 @@ import '../domain/models/checklist_item.dart';
 import '../domain/models/day_rings.dart';
 import '../domain/models/task_lifespan.dart';
 import 'database_provider.dart';
+import 'date_provider.dart';
 
 const _consistencyLookbackDays = 6;
 
@@ -62,6 +63,7 @@ final monthRingsProvider = Provider.autoDispose
       final countsAsync = ref.watch(
         _monthCompletionCountsProvider(monthAnchor),
       );
+      final today = ref.watch(currentLocalDateProvider);
 
       if (tasksAsync.isLoading || countsAsync.isLoading) {
         return const AsyncValue.loading();
@@ -78,6 +80,7 @@ final monthRingsProvider = Provider.autoDispose
           monthAnchor: monthAnchor,
           tasks: tasksAsync.value!,
           completedCountsByDate: countsAsync.value!,
+          today: today,
         ),
       );
     });

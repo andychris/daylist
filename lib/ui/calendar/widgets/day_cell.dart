@@ -9,11 +9,13 @@ class DayCell extends StatelessWidget {
     super.key,
     required this.rings,
     required this.isToday,
+    required this.isFuture,
     required this.onTap,
   });
 
   final DayRings rings;
   final bool isToday;
+  final bool isFuture;
   final VoidCallback onTap;
 
   @override
@@ -21,10 +23,13 @@ class DayCell extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return GestureDetector(
-      onTap: () {
-        HapticFeedback.selectionClick();
-        onTap();
-      },
+      // A future day hasn't happened yet — nothing to show detail for.
+      onTap: isFuture
+          ? null
+          : () {
+              HapticFeedback.selectionClick();
+              onTap();
+            },
       child: AspectRatio(
         aspectRatio: 1,
         child: Stack(
@@ -38,6 +43,7 @@ class DayCell extends StatelessWidget {
                 trackColor: colorScheme.surfaceContainerHighest,
                 tintColor: colorScheme.primary,
                 isToday: isToday,
+                isFuture: isFuture,
               ),
               size: Size.infinite,
             ),
@@ -45,23 +51,32 @@ class DayCell extends StatelessWidget {
               '${rings.date.day}',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+                color: isFuture
+                    ? colorScheme.outline.withValues(alpha: 0.4)
+                    : null,
               ),
             ),
-            Positioned(
-              top: 2,
-              right: 2,
-              child: Container(
-                width: 7,
-                height: 7,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: rings.hasGoal ? colorScheme.primary : Colors.transparent,
-                  border: rings.hasGoal
-                      ? null
-                      : Border.all(color: colorScheme.outlineVariant, width: 1),
+            if (!isFuture)
+              Positioned(
+                top: 2,
+                right: 2,
+                child: Container(
+                  width: 7,
+                  height: 7,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: rings.hasGoal
+                        ? colorScheme.primary
+                        : Colors.transparent,
+                    border: rings.hasGoal
+                        ? null
+                        : Border.all(
+                            color: colorScheme.outlineVariant,
+                            width: 1,
+                          ),
+                  ),
                 ),
               ),
-            ),
           ],
         ),
       ),
