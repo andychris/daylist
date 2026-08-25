@@ -14,6 +14,7 @@ import 'widgets/checklist_item_tile.dart';
 import 'widgets/completion_celebration.dart';
 import 'widgets/progress_ring.dart';
 import 'widgets/streak_badge.dart';
+import 'widgets/todays_events_panel.dart';
 
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
@@ -68,6 +69,10 @@ class HomePage extends ConsumerWidget {
                       ProgressRing(completed: completed, total: total),
                     ],
                   ),
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16.0),
+                  child: TodaysEventsPanel(),
                 ),
                 const Divider(height: 1),
                 Expanded(
