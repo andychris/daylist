@@ -1,7 +1,6 @@
 import 'package:daylist/app.dart';
 import 'package:daylist/data/database/app_database.dart';
 import 'package:daylist/domain/date_utils.dart';
-import 'package:daylist/providers/database_provider.dart';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
@@ -45,7 +44,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [databaseProvider.overrideWithValue(db)],
+        overrides: testProviderOverrides(db),
         child: const DaylistApp(),
       ),
     );
@@ -69,7 +68,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [databaseProvider.overrideWithValue(db)],
+        overrides: testProviderOverrides(db),
         child: const DaylistApp(),
       ),
     );
@@ -106,7 +105,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [databaseProvider.overrideWithValue(db)],
+        overrides: testProviderOverrides(db),
         child: const DaylistApp(),
       ),
     );
@@ -138,7 +137,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [databaseProvider.overrideWithValue(db)],
+        overrides: testProviderOverrides(db),
         child: const DaylistApp(),
       ),
     );
@@ -166,7 +165,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [databaseProvider.overrideWithValue(db)],
+        overrides: testProviderOverrides(db),
         child: const DaylistApp(),
       ),
     );
@@ -197,7 +196,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [databaseProvider.overrideWithValue(db)],
+        overrides: testProviderOverrides(db),
         child: const DaylistApp(),
       ),
     );

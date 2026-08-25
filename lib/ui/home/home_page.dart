@@ -139,7 +139,7 @@ class HomePage extends ConsumerWidget {
         },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => AddTaskSheet.show(context, repository: repository),
+        onPressed: () => AddTaskSheet.show(context),
         child: const Icon(Icons.add),
       ),
     );

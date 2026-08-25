@@ -1,5 +1,21 @@
+import 'package:daylist/data/database/app_database.dart';
+import 'package:daylist/providers/database_provider.dart';
+import 'package:daylist/providers/notification_providers.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'fakes/fake_notifications_gateway.dart';
+
+/// The standard provider overrides for a widget test that pumps the real
+/// [DaylistApp] widget tree: an in-memory [db] (rather than the real
+/// on-device database) and a [FakeNotificationsGateway] (rather than real
+/// platform-channel calls, which aren't mocked in `flutter_test` and would
+/// throw `MissingPluginException`).
+List<Override> testProviderOverrides(AppDatabase db) => [
+  databaseProvider.overrideWithValue(db),
+  notificationsGatewayProvider.overrideWithValue(FakeNotificationsGateway()),
+];
 
 /// Drift's stream cleanup schedules a zero-duration Timer when a listener is
 /// cancelled. flutter_test's strict "no pending timers" invariant check trips

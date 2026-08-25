@@ -4,11 +4,13 @@ import '../../domain/date_utils.dart';
 import '../../domain/models/checklist_item.dart';
 import '../../domain/models/task_category.dart';
 import '../database/app_database.dart';
+import '../notifications/notification_scheduler.dart';
 
 class ChecklistRepository {
-  ChecklistRepository(this._db);
+  ChecklistRepository(this._db, this._notificationScheduler);
 
   final AppDatabase _db;
+  final NotificationScheduler _notificationScheduler;
 
   /// Streams active tasks joined against today's completion state, sorted
   /// so completed items sink below active ones.
@@ -55,13 +57,13 @@ class ChecklistRepository {
     final trimmed = title.trim();
     if (trimmed.isEmpty) return;
 
-    await _db.transaction(() async {
+    final id = await _db.transaction(() async {
       final maxOrder = await (_db.selectOnly(_db.tasks)
             ..addColumns([_db.tasks.sortOrder.max()]))
           .map((row) => row.read(_db.tasks.sortOrder.max()))
           .getSingleOrNull();
 
-      await _db
+      return _db
           .into(_db.tasks)
           .insert(
             TasksCompanion.insert(
@@ -72,6 +74,13 @@ class ChecklistRepository {
             ),
           );
     });
+
+    if (reminderMinuteOfDay != null) {
+      final task = await (_db.select(
+        _db.tasks,
+      )..where((t) => t.id.equals(id))).getSingle();
+      await _notificationScheduler.scheduleReminder(task);
+    }
   }
 
   /// Updates an existing task. Omitted parameters leave that field
@@ -90,6 +99,11 @@ class ChecklistRepository {
         reminderMinuteOfDay: reminderMinuteOfDay,
       ),
     );
+
+    final task = await (_db.select(
+      _db.tasks,
+    )..where((t) => t.id.equals(taskId))).getSingle();
+    await _notificationScheduler.scheduleReminder(task);
   }
 
   Future<void> toggleCompletion({
@@ -118,11 +132,19 @@ class ChecklistRepository {
     await (_db.update(_db.tasks)..where((t) => t.id.equals(taskId))).write(
       TasksCompanion(archivedAt: Value(DateTime.now())),
     );
+    await _notificationScheduler.cancelReminder(taskId);
   }
 
   Future<void> restoreTask(int taskId) async {
     await (_db.update(_db.tasks)..where((t) => t.id.equals(taskId))).write(
       const TasksCompanion(archivedAt: Value(null)),
     );
+
+    final task = await (_db.select(
+      _db.tasks,
+    )..where((t) => t.id.equals(taskId))).getSingle();
+    if (task.reminderMinuteOfDay != null) {
+      await _notificationScheduler.scheduleReminder(task);
+    }
   }
 }

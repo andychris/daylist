@@ -1,30 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../data/repositories/checklist_repository.dart';
 import '../../../domain/models/task_category.dart';
+import '../../../providers/checklist_providers.dart';
+import '../../../providers/notification_providers.dart';
 import '../../theme/task_category_style.dart';
 
-class AddTaskSheet extends StatefulWidget {
-  const AddTaskSheet({super.key, required this.repository});
+class AddTaskSheet extends ConsumerStatefulWidget {
+  const AddTaskSheet({super.key});
 
-  final ChecklistRepository repository;
-
-  static Future<void> show(
-    BuildContext context, {
-    required ChecklistRepository repository,
-  }) {
+  static Future<void> show(BuildContext context) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (context) => AddTaskSheet(repository: repository),
+      builder: (context) => const AddTaskSheet(),
     );
   }
 
   @override
-  State<AddTaskSheet> createState() => _AddTaskSheetState();
+  ConsumerState<AddTaskSheet> createState() => _AddTaskSheetState();
 }
 
-class _AddTaskSheetState extends State<AddTaskSheet> {
+class _AddTaskSheetState extends ConsumerState<AddTaskSheet> {
   final _titleController = TextEditingController();
   TaskCategory _category = TaskCategory.other;
   bool _reminderEnabled = false;
@@ -44,16 +41,27 @@ class _AddTaskSheetState extends State<AddTaskSheet> {
     if (picked != null) setState(() => _reminderTime = picked);
   }
 
+  Future<void> _onReminderToggled(bool value) async {
+    setState(() => _reminderEnabled = value);
+    // Ask for notification permission lazily, only when the user actually
+    // wants a reminder — not up front at app launch.
+    if (value) {
+      await ref.read(notificationsGatewayProvider).requestPermission();
+    }
+  }
+
   void _submit() {
     final title = _titleController.text.trim();
     if (title.isEmpty) return;
-    widget.repository.addTask(
-      title: title,
-      category: _category,
-      reminderMinuteOfDay: _reminderEnabled
-          ? _reminderTime.hour * 60 + _reminderTime.minute
-          : null,
-    );
+    ref
+        .read(checklistRepositoryProvider)
+        .addTask(
+          title: title,
+          category: _category,
+          reminderMinuteOfDay: _reminderEnabled
+              ? _reminderTime.hour * 60 + _reminderTime.minute
+              : null,
+        );
     Navigator.of(context).pop();
   }
 
@@ -112,7 +120,7 @@ class _AddTaskSheetState extends State<AddTaskSheet> {
                   ? Text(_reminderTime.format(context))
                   : null,
               value: _reminderEnabled,
-              onChanged: (value) => setState(() => _reminderEnabled = value),
+              onChanged: _onReminderToggled,
             ),
             if (_reminderEnabled)
               Align(
