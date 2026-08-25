@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 
 import '../../../domain/models/day_rings.dart';
 import 'day_cell_painter.dart';
@@ -18,66 +19,84 @@ class DayCell extends StatelessWidget {
   final bool isFuture;
   final VoidCallback onTap;
 
+  String _semanticsLabel() {
+    final dateLabel = DateFormat('EEEE, MMMM d').format(rings.date);
+    if (isFuture) return '$dateLabel, upcoming';
+
+    final parts = [
+      dateLabel,
+      if (isToday) 'today',
+      '${rings.completed} of ${rings.totalActive} tasks done',
+      rings.hasGoal ? 'goal set' : 'no goal set',
+    ];
+    return parts.join(', ');
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return GestureDetector(
-      // A future day hasn't happened yet — nothing to show detail for.
-      onTap: isFuture
-          ? null
-          : () {
-              HapticFeedback.selectionClick();
-              onTap();
-            },
-      child: AspectRatio(
-        aspectRatio: 1,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            CustomPaint(
-              painter: DayCellPainter(
-                progressFraction: rings.progressFraction,
-                consistencyFraction: rings.consistencyFraction,
-                ringColor: colorScheme.primary,
-                trackColor: colorScheme.surfaceContainerHighest,
-                tintColor: colorScheme.primary,
-                isToday: isToday,
-                isFuture: isFuture,
+    return Semantics(
+      label: _semanticsLabel(),
+      button: !isFuture,
+      excludeSemantics: true,
+      child: GestureDetector(
+        // A future day hasn't happened yet — nothing to show detail for.
+        onTap: isFuture
+            ? null
+            : () {
+                HapticFeedback.selectionClick();
+                onTap();
+              },
+        child: AspectRatio(
+          aspectRatio: 1,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              CustomPaint(
+                painter: DayCellPainter(
+                  progressFraction: rings.progressFraction,
+                  consistencyFraction: rings.consistencyFraction,
+                  ringColor: colorScheme.primary,
+                  trackColor: colorScheme.surfaceContainerHighest,
+                  tintColor: colorScheme.primary,
+                  isToday: isToday,
+                  isFuture: isFuture,
+                ),
+                size: Size.infinite,
               ),
-              size: Size.infinite,
-            ),
-            Text(
-              '${rings.date.day}',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
-                color: isFuture
-                    ? colorScheme.outline.withValues(alpha: 0.4)
-                    : null,
-              ),
-            ),
-            if (!isFuture)
-              Positioned(
-                top: 2,
-                right: 2,
-                child: Container(
-                  width: 7,
-                  height: 7,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: rings.hasGoal
-                        ? colorScheme.primary
-                        : Colors.transparent,
-                    border: rings.hasGoal
-                        ? null
-                        : Border.all(
-                            color: colorScheme.outlineVariant,
-                            width: 1,
-                          ),
-                  ),
+              Text(
+                '${rings.date.day}',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+                  color: isFuture
+                      ? colorScheme.outline.withValues(alpha: 0.4)
+                      : null,
                 ),
               ),
-          ],
+              if (!isFuture)
+                Positioned(
+                  top: 2,
+                  right: 2,
+                  child: Container(
+                    width: 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: rings.hasGoal
+                          ? colorScheme.primary
+                          : Colors.transparent,
+                      border: rings.hasGoal
+                          ? null
+                          : Border.all(
+                              color: colorScheme.outlineVariant,
+                              width: 1,
+                            ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

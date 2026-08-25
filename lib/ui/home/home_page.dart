@@ -13,6 +13,7 @@ import 'widgets/add_task_sheet.dart';
 import 'widgets/checklist_item_tile.dart';
 import 'widgets/completion_celebration.dart';
 import 'widgets/progress_ring.dart';
+import 'widgets/streak_badge.dart';
 
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
@@ -49,11 +50,20 @@ class HomePage extends ConsumerWidget {
                   padding: const EdgeInsets.all(16.0),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Text(
-                        'Today',
-                        style: Theme.of(context).textTheme.headlineSmall
-                            ?.copyWith(fontWeight: FontWeight.bold),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Today',
+                            style: Theme.of(context).textTheme.headlineSmall
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 6),
+                          const StreakBadge(),
+                        ],
                       ),
                       ProgressRing(completed: completed, total: total),
                     ],

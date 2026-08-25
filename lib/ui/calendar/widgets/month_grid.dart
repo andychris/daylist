@@ -54,8 +54,8 @@ class MonthGrid extends StatelessWidget {
           padding: EdgeInsets.zero,
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 7,
-            mainAxisSpacing: 6,
-            crossAxisSpacing: 6,
+            mainAxisSpacing: 3,
+            crossAxisSpacing: 3,
           ),
           itemCount: leadingBlanks + daysInMonth,
           itemBuilder: (context, index) {

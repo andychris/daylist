@@ -6,6 +6,7 @@ import '../domain/date_utils.dart';
 import '../domain/models/checklist_item.dart';
 import '../domain/models/day_rings.dart';
 import '../domain/models/task_lifespan.dart';
+import '../domain/streak.dart';
 import 'database_provider.dart';
 import 'date_provider.dart';
 
@@ -91,3 +92,53 @@ final dayDetailProvider = StreamProvider.autoDispose
           .watch(historyRepositoryProvider)
           .watchChecklistForHistoricalDate(date);
     });
+
+final _streakTaskLifespansProvider = StreamProvider.autoDispose<List<TaskLifespan>>((
+  ref,
+) {
+  final today = ref.watch(currentLocalDateProvider);
+  return ref
+      .watch(historyRepositoryProvider)
+      .watchTaskLifespans(
+        rangeStart: addDays(today, -streakMaxLookbackDays),
+        rangeEnd: today,
+      );
+});
+
+final _streakCompletionCountsProvider = StreamProvider.autoDispose<Map<String, int>>((
+  ref,
+) {
+  final today = ref.watch(currentLocalDateProvider);
+  return ref
+      .watch(historyRepositoryProvider)
+      .watchCompletionCounts(
+        rangeStart: addDays(today, -streakMaxLookbackDays),
+        rangeEnd: today,
+      );
+});
+
+/// The user's current daily-completion streak, ending today (or yesterday,
+/// if today isn't fully done yet — see [computeCurrentStreak]).
+final currentStreakProvider = Provider.autoDispose<AsyncValue<int>>((ref) {
+  final tasksAsync = ref.watch(_streakTaskLifespansProvider);
+  final countsAsync = ref.watch(_streakCompletionCountsProvider);
+  final today = ref.watch(currentLocalDateProvider);
+
+  if (tasksAsync.isLoading || countsAsync.isLoading) {
+    return const AsyncValue.loading();
+  }
+  if (tasksAsync.hasError) {
+    return AsyncValue.error(tasksAsync.error!, tasksAsync.stackTrace!);
+  }
+  if (countsAsync.hasError) {
+    return AsyncValue.error(countsAsync.error!, countsAsync.stackTrace!);
+  }
+
+  return AsyncValue.data(
+    computeCurrentStreak(
+      today: today,
+      tasks: tasksAsync.value!,
+      completedCountsByDate: countsAsync.value!,
+    ),
+  );
+});
