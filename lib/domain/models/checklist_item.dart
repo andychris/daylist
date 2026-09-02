@@ -1,4 +1,5 @@
 import 'task_category.dart';
+import 'task_priority.dart';
 
 class ChecklistItem {
   const ChecklistItem({
@@ -8,6 +9,10 @@ class ChecklistItem {
     required this.sortOrder,
     required this.category,
     required this.reminderMinuteOfDay,
+    required this.priority,
+    required this.projectId,
+    required this.dueDate,
+    required this.recurrenceRule,
   });
 
   final int id;
@@ -20,6 +25,13 @@ class ChecklistItem {
   /// task has no reminder.
   final int? reminderMinuteOfDay;
 
+  final TaskPriority priority;
+
+  /// Null means the task is in Inbox (no project).
+  final int? projectId;
+  final DateTime? dueDate;
+  final String? recurrenceRule;
+
   ChecklistItem copyWith({bool? isDoneToday}) => ChecklistItem(
     id: id,
     title: title,
@@ -27,5 +39,9 @@ class ChecklistItem {
     sortOrder: sortOrder,
     category: category,
     reminderMinuteOfDay: reminderMinuteOfDay,
+    priority: priority,
+    projectId: projectId,
+    dueDate: dueDate,
+    recurrenceRule: recurrenceRule,
   );
 }

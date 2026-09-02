@@ -104,6 +104,10 @@ class HistoryRepository {
               sortOrder: task.sortOrder,
               category: task.category,
               reminderMinuteOfDay: task.reminderMinuteOfDay,
+              priority: task.priority,
+              projectId: task.projectId,
+              dueDate: task.dueDate,
+              recurrenceRule: task.recurrenceRule,
             );
           })
           .toList();

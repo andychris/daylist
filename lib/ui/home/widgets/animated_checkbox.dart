@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
 
 class AnimatedCheckbox extends StatelessWidget {
-  const AnimatedCheckbox({super.key, required this.checked});
+  const AnimatedCheckbox({super.key, required this.checked, this.activeColor});
 
   final bool checked;
+
+  /// Color the checkbox fills with once checked (and its border tweens
+  /// toward). Defaults to the theme's primary color — pass a task's
+  /// priority color to get Todoist-style priority-coded checkboxes.
+  final Color? activeColor;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final active = activeColor ?? colorScheme.primary;
 
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: checked ? 1 : 0),
@@ -25,17 +31,9 @@ class AnimatedCheckbox extends StatelessWidget {
             height: 24,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Color.lerp(
-                Colors.transparent,
-                colorScheme.primary,
-                clamped,
-              ),
+              color: Color.lerp(Colors.transparent, active, clamped),
               border: Border.all(
-                color: Color.lerp(
-                  colorScheme.outline,
-                  colorScheme.primary,
-                  clamped,
-                )!,
+                color: Color.lerp(colorScheme.outline, active, clamped)!,
                 width: 2,
               ),
             ),

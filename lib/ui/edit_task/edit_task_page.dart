@@ -5,10 +5,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/models/checklist_item.dart';
-import '../../domain/models/task_category.dart';
+import '../../domain/models/task_priority.dart';
 import '../../providers/checklist_providers.dart';
+import '../../providers/label_providers.dart';
 import '../../providers/notification_providers.dart';
-import '../theme/task_category_style.dart';
+import '../widgets/label_multi_select.dart';
+import '../widgets/priority_picker.dart';
+import '../widgets/project_picker.dart';
 
 class EditTaskPage extends ConsumerStatefulWidget {
   const EditTaskPage({super.key, required this.item});
@@ -37,7 +40,9 @@ class EditTaskPage extends ConsumerStatefulWidget {
 
 class _EditTaskPageState extends ConsumerState<EditTaskPage> {
   late final _titleController = TextEditingController(text: widget.item.title);
-  late TaskCategory _category = widget.item.category;
+  late TaskPriority _priority = widget.item.priority;
+  int? _projectId;
+  Set<int> _labelIds = {};
   late bool _reminderEnabled = widget.item.reminderMinuteOfDay != null;
   late TimeOfDay _reminderTime = widget.item.reminderMinuteOfDay != null
       ? TimeOfDay(
@@ -45,6 +50,24 @@ class _EditTaskPageState extends ConsumerState<EditTaskPage> {
           minute: widget.item.reminderMinuteOfDay! % 60,
         )
       : const TimeOfDay(hour: 9, minute: 0);
+
+  @override
+  void initState() {
+    super.initState();
+    _projectId = widget.item.projectId;
+    // One-off read (not a live watch) so this editor's in-progress label
+    // selection isn't clobbered by later label-set changes elsewhere while
+    // the sheet is open.
+    ref
+        .read(labelRepositoryProvider)
+        .watchLabelsForTask(widget.item.id)
+        .first
+        .then((labels) {
+          if (mounted) {
+            setState(() => _labelIds = labels.map((l) => l.id).toSet());
+          }
+        });
+  }
 
   @override
   void dispose() {
@@ -76,18 +99,20 @@ class _EditTaskPageState extends ConsumerState<EditTaskPage> {
         .updateTask(
           taskId: widget.item.id,
           title: title,
-          category: _category,
+          priority: _priority,
+          projectId: Value(_projectId),
           reminderMinuteOfDay: _reminderEnabled
               ? Value(_reminderTime.hour * 60 + _reminderTime.minute)
               : const Value(null),
         );
+    await ref
+        .read(labelRepositoryProvider)
+        .setTaskLabels(widget.item.id, _labelIds.toList());
     if (mounted) Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Edit task'),
@@ -111,24 +136,23 @@ class _EditTaskPageState extends ConsumerState<EditTaskPage> {
             onSubmitted: (_) => _save(),
           ),
           const SizedBox(height: 20),
-          Text('Category', style: Theme.of(context).textTheme.labelMedium),
+          Text('Priority', style: Theme.of(context).textTheme.labelMedium),
           const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: TaskCategory.values.map((category) {
-              final selected = category == _category;
-              return ChoiceChip(
-                label: Text(category.label),
-                avatar: Icon(
-                  category.icon,
-                  size: 18,
-                  color: selected ? colorScheme.onPrimary : category.color,
-                ),
-                selected: selected,
-                onSelected: (_) => setState(() => _category = category),
-              );
-            }).toList(),
+          PriorityPicker(
+            value: _priority,
+            onChanged: (p) => setState(() => _priority = p),
+          ),
+          const SizedBox(height: 20),
+          ProjectPicker(
+            value: _projectId,
+            onChanged: (id) => setState(() => _projectId = id),
+          ),
+          const SizedBox(height: 20),
+          Text('Labels', style: Theme.of(context).textTheme.labelMedium),
+          const SizedBox(height: 8),
+          LabelMultiSelect(
+            selectedLabelIds: _labelIds,
+            onChanged: (ids) => setState(() => _labelIds = ids),
           ),
           const SizedBox(height: 8),
           SwitchListTile(

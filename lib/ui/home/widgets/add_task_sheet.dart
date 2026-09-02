@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../domain/models/task_category.dart';
+import '../../../domain/models/task_priority.dart';
 import '../../../providers/checklist_providers.dart';
 import '../../../providers/notification_providers.dart';
-import '../../theme/task_category_style.dart';
+import '../../widgets/priority_picker.dart';
+import '../../widgets/project_picker.dart';
 
 class AddTaskSheet extends ConsumerStatefulWidget {
   const AddTaskSheet({super.key});
@@ -23,7 +24,8 @@ class AddTaskSheet extends ConsumerStatefulWidget {
 
 class _AddTaskSheetState extends ConsumerState<AddTaskSheet> {
   final _titleController = TextEditingController();
-  TaskCategory _category = TaskCategory.other;
+  TaskPriority _priority = TaskPriority.p4;
+  int? _projectId;
   bool _reminderEnabled = false;
   TimeOfDay _reminderTime = const TimeOfDay(hour: 9, minute: 0);
 
@@ -57,7 +59,8 @@ class _AddTaskSheetState extends ConsumerState<AddTaskSheet> {
         .read(checklistRepositoryProvider)
         .addTask(
           title: title,
-          category: _category,
+          priority: _priority,
+          projectId: _projectId,
           reminderMinuteOfDay: _reminderEnabled
               ? _reminderTime.hour * 60 + _reminderTime.minute
               : null,
@@ -67,8 +70,6 @@ class _AddTaskSheetState extends ConsumerState<AddTaskSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Padding(
       padding: EdgeInsets.only(
         left: 20,
@@ -93,24 +94,16 @@ class _AddTaskSheetState extends ConsumerState<AddTaskSheet> {
               onSubmitted: (_) => _submit(),
             ),
             const SizedBox(height: 16),
-            Text('Category', style: Theme.of(context).textTheme.labelMedium),
+            Text('Priority', style: Theme.of(context).textTheme.labelMedium),
             const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: TaskCategory.values.map((category) {
-                final selected = category == _category;
-                return ChoiceChip(
-                  label: Text(category.label),
-                  avatar: Icon(
-                    category.icon,
-                    size: 18,
-                    color: selected ? colorScheme.onPrimary : category.color,
-                  ),
-                  selected: selected,
-                  onSelected: (_) => setState(() => _category = category),
-                );
-              }).toList(),
+            PriorityPicker(
+              value: _priority,
+              onChanged: (p) => setState(() => _priority = p),
+            ),
+            const SizedBox(height: 16),
+            ProjectPicker(
+              value: _projectId,
+              onChanged: (id) => setState(() => _projectId = id),
             ),
             const SizedBox(height: 8),
             SwitchListTile(

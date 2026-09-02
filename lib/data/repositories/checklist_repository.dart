@@ -3,6 +3,7 @@ import 'package:drift/drift.dart';
 import '../../domain/date_utils.dart';
 import '../../domain/models/checklist_item.dart';
 import '../../domain/models/task_category.dart';
+import '../../domain/models/task_priority.dart';
 import '../database/app_database.dart';
 import '../notifications/notification_scheduler.dart';
 
@@ -36,6 +37,10 @@ class ChecklistRepository {
           sortOrder: task.sortOrder,
           category: task.category,
           reminderMinuteOfDay: task.reminderMinuteOfDay,
+          priority: task.priority,
+          projectId: task.projectId,
+          dueDate: task.dueDate,
+          recurrenceRule: task.recurrenceRule,
         );
       }).toList();
 
@@ -51,8 +56,12 @@ class ChecklistRepository {
 
   Future<void> addTask({
     required String title,
-    required TaskCategory category,
+    TaskCategory category = TaskCategory.other,
     int? reminderMinuteOfDay,
+    TaskPriority priority = TaskPriority.p4,
+    int? projectId,
+    DateTime? dueDate,
+    String? recurrenceRule,
   }) async {
     final trimmed = title.trim();
     if (trimmed.isEmpty) return;
@@ -71,6 +80,10 @@ class ChecklistRepository {
               sortOrder: (maxOrder ?? 0) + 1000,
               category: Value(category),
               reminderMinuteOfDay: Value(reminderMinuteOfDay),
+              priority: Value(priority),
+              projectId: Value(projectId),
+              dueDate: Value(dueDate),
+              recurrenceRule: Value(recurrenceRule),
             ),
           );
     });
@@ -84,19 +97,28 @@ class ChecklistRepository {
   }
 
   /// Updates an existing task. Omitted parameters leave that field
-  /// unchanged; pass [reminderMinuteOfDay] as `Value(null)` to explicitly
-  /// clear a reminder (vs. `Value.absent()`, the default, to leave it as-is).
+  /// unchanged; pass e.g. [reminderMinuteOfDay] as `Value(null)` to
+  /// explicitly clear it (vs. `Value.absent()`, the default, to leave it
+  /// as-is).
   Future<void> updateTask({
     required int taskId,
     String? title,
     TaskCategory? category,
     Value<int?> reminderMinuteOfDay = const Value.absent(),
+    TaskPriority? priority,
+    Value<int?> projectId = const Value.absent(),
+    Value<DateTime?> dueDate = const Value.absent(),
+    Value<String?> recurrenceRule = const Value.absent(),
   }) async {
     await (_db.update(_db.tasks)..where((t) => t.id.equals(taskId))).write(
       TasksCompanion(
         title: title != null ? Value(title.trim()) : const Value.absent(),
         category: category != null ? Value(category) : const Value.absent(),
         reminderMinuteOfDay: reminderMinuteOfDay,
+        priority: priority != null ? Value(priority) : const Value.absent(),
+        projectId: projectId,
+        dueDate: dueDate,
+        recurrenceRule: recurrenceRule,
       ),
     );
 
