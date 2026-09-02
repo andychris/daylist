@@ -86,7 +86,11 @@ class _EditTaskPageState extends ConsumerState<EditTaskPage> {
   Future<void> _onReminderToggled(bool value) async {
     setState(() => _reminderEnabled = value);
     if (value) {
-      await ref.read(notificationsGatewayProvider).requestPermission();
+      final gateway = ref.read(notificationsGatewayProvider);
+      await gateway.requestPermission();
+      // A due-dated or one-shot-style recurring reminder needs an exact
+      // alarm; a no-op on platforms/versions that don't require it.
+      await gateway.requestExactAlarmPermission();
     }
   }
 

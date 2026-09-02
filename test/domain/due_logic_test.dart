@@ -122,4 +122,37 @@ void main() {
       );
     });
   });
+
+  group('nextOccurrenceOnOrAfter', () {
+    final anchor = DateTime(2026, 3, 1); // A Sunday.
+
+    test('returns from itself when the rule already matches that day', () {
+      expect(
+        nextOccurrenceOnOrAfter('daily', DateTime(2026, 3, 10), anchor),
+        DateTime(2026, 3, 10),
+      );
+    });
+
+    test('searches forward for a weekly rule', () {
+      // From a Wednesday, the next Monday is 5 days out.
+      expect(
+        nextOccurrenceOnOrAfter('weekly:MON', DateTime(2026, 3, 4), anchor),
+        DateTime(2026, 3, 9),
+      );
+    });
+
+    test('searches forward for a monthly rule, crossing a month boundary', () {
+      expect(
+        nextOccurrenceOnOrAfter('monthly:1', DateTime(2026, 3, 15), anchor),
+        DateTime(2026, 4, 1),
+      );
+    });
+
+    test('an unrecognized rule finds nothing within the search bound', () {
+      expect(
+        nextOccurrenceOnOrAfter('nonsense', DateTime(2026, 3, 1), anchor),
+        isNull,
+      );
+    });
+  });
 }

@@ -42,6 +42,24 @@ bool matchesRecurrence(String rule, DateTime day, DateTime anchor) {
   return false;
 }
 
+/// The next date on or after [from] that [rule] matches, or null if none
+/// is found within [maxDaysToSearch] (a guard against a malformed rule
+/// that never matches, rather than searching forever). Used to schedule a
+/// recurring task's next reminder for rules with no simple native
+/// "repeat every day/week" primitive (`weekdays`, `monthly:D`, `every:N`).
+DateTime? nextOccurrenceOnOrAfter(
+  String rule,
+  DateTime from,
+  DateTime anchor, {
+  int maxDaysToSearch = 400,
+}) {
+  for (var i = 0; i < maxDaysToSearch; i++) {
+    final day = addDays(from, i);
+    if (matchesRecurrence(rule, day, anchor)) return day;
+  }
+  return null;
+}
+
 /// Whether a task is "due" on [day]: active (see [isTaskActiveOn]) and
 /// either matching its [recurrenceRule], or — for a one-off task
 /// ([recurrenceRule] null) — on or after its [dueDate]. A one-off task

@@ -9,6 +9,7 @@ import '../../../domain/quick_add/parsed_quick_add_result.dart';
 import '../../../domain/quick_add/task_input_parser.dart';
 import '../../../providers/checklist_providers.dart';
 import '../../../providers/label_providers.dart';
+import '../../../providers/notification_providers.dart';
 import '../../../providers/project_providers.dart';
 import '../../widgets/priority_picker.dart';
 import '../../widgets/project_picker.dart';
@@ -81,6 +82,14 @@ class _AddTaskSheetState extends ConsumerState<AddTaskSheet> {
   Future<void> _submit() async {
     final parsed = _parsed;
     if (parsed.cleanedTitle.isEmpty) return;
+
+    if (parsed.dueTimeMinuteOfDay != null) {
+      // Ask lazily, only now that a typed time actually needs a real
+      // reminder to fire — not up front at app launch.
+      final gateway = ref.read(notificationsGatewayProvider);
+      await gateway.requestPermission();
+      await gateway.requestExactAlarmPermission();
+    }
 
     final projectRepository = ref.read(projectRepositoryProvider);
     final labelRepository = ref.read(labelRepositoryProvider);
