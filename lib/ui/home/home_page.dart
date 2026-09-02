@@ -1,11 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:home_widget/home_widget.dart';
 
 import '../../data/repositories/checklist_repository.dart';
 import '../../domain/models/checklist_item.dart';
 import '../../providers/checklist_providers.dart';
 import '../../providers/date_provider.dart';
+import '../../providers/widget_sync_provider.dart';
 import '../calendar/calendar_page.dart';
 import '../inbox/inbox_page.dart';
 import '../projects/projects_list_page.dart';
@@ -18,11 +22,41 @@ import 'widgets/progress_ring.dart';
 import 'widgets/streak_badge.dart';
 import 'widgets/todays_events_panel.dart';
 
-class HomePage extends ConsumerWidget {
+class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends ConsumerState<HomePage> {
+  StreamSubscription<Uri?>? _widgetClickSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    // Cold start via the widget's "+" tile.
+    HomeWidget.initiallyLaunchedFromHomeWidget().then(_handleWidgetUri);
+    // A tap while the app is already running (warm start/background).
+    _widgetClickSubscription = HomeWidget.widgetClicked.listen(_handleWidgetUri);
+  }
+
+  @override
+  void dispose() {
+    _widgetClickSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _handleWidgetUri(Uri? uri) {
+    if (uri?.host != 'add') return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) AddTaskSheet.show(context);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    ref.watch(widgetSyncProvider); // keeps the home-screen widget in sync
     final groupedAsync = ref.watch(groupedTasksProvider);
     final repository = ref.read(checklistRepositoryProvider);
     final today = ref.watch(currentLocalDateProvider);
