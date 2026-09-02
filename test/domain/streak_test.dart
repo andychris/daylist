@@ -5,7 +5,14 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   final today = DateTime(2026, 3, 15);
-  final task = TaskLifespan(id: 1, createdAt: DateTime(2026, 1, 1), archivedAt: null);
+  // A pre-migration "daily habit" task: recurs every day forever.
+  final task = TaskLifespan(
+    id: 1,
+    createdAt: DateTime(2026, 1, 1),
+    archivedAt: null,
+    recurrenceRule: 'daily',
+    dueDate: null,
+  );
 
   Map<String, int> completedFor(List<DateTime> doneDays) => {
     for (final d in doneDays) formatLocalDate(d): 1,
@@ -58,6 +65,8 @@ void main() {
       id: 1,
       createdAt: addDays(today, -1),
       archivedAt: null,
+      recurrenceRule: 'daily',
+      dueDate: null,
     );
     final streak = computeCurrentStreak(
       today: today,
@@ -65,5 +74,40 @@ void main() {
       completedCountsByDate: completedFor([today, addDays(today, -1)]),
     );
     expect(streak, 2);
+  });
+
+  test('a one-off task due today counts toward the day, not future days', () {
+    final oneOff = TaskLifespan(
+      id: 2,
+      createdAt: addDays(today, -5),
+      archivedAt: null,
+      recurrenceRule: null,
+      dueDate: today,
+    );
+    final streak = computeCurrentStreak(
+      today: today,
+      tasks: [oneOff],
+      completedCountsByDate: completedFor([today]),
+    );
+    expect(streak, 1);
+  });
+
+  test('an overdue one-off task keeps counting as active on later days', () {
+    final overdue = TaskLifespan(
+      id: 3,
+      createdAt: addDays(today, -5),
+      archivedAt: null,
+      recurrenceRule: null,
+      dueDate: addDays(today, -3),
+    );
+    // Not completed on its due date, so days after that (including today)
+    // aren't "fully done" -> zero streak, but it must still be counted as
+    // active (not silently dropped) for those days to matter.
+    final streak = computeCurrentStreak(
+      today: today,
+      tasks: [overdue],
+      completedCountsByDate: const {},
+    );
+    expect(streak, 0);
   });
 }

@@ -34,9 +34,7 @@ List<DayRings> computeMonthRings({
       progressByDay[day] = null;
       continue;
     }
-    final activeCount = tasks
-        .where((t) => isTaskActiveOn(t.createdAt, t.archivedAt, day))
-        .length;
+    final activeCount = tasks.where((t) => t.isDueOn(day)).length;
     if (activeCount == 0) {
       progressByDay[day] = null;
       continue;
@@ -65,9 +63,7 @@ List<DayRings> computeMonthRings({
       continue;
     }
 
-    final activeCount = tasks
-        .where((t) => isTaskActiveOn(t.createdAt, t.archivedAt, day))
-        .length;
+    final activeCount = tasks.where((t) => t.isDueOn(day)).length;
     final completed = completedCountsByDate[formatLocalDate(day)] ?? 0;
     final progressFraction = activeCount == 0 ? 0.0 : completed / activeCount;
 

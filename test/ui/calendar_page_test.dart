@@ -22,6 +22,9 @@ void main() {
             title: 'Meditate',
             sortOrder: 0,
             createdAt: Value(today),
+            // A pre-migration-style daily habit, so it's due (and shows a
+            // ring) on every day these calendar tests check.
+            recurrenceRule: const Value('daily'),
           ),
         );
     await db

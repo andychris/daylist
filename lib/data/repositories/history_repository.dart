@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import '../../domain/date_utils.dart';
+import '../../domain/due_logic.dart';
 import '../../domain/models/checklist_item.dart';
 import '../../domain/models/task_lifespan.dart';
 import '../database/app_database.dart';
@@ -32,6 +33,8 @@ class HistoryRepository {
               id: r.id,
               createdAt: r.createdAt,
               archivedAt: r.archivedAt,
+              recurrenceRule: r.recurrenceRule,
+              dueDate: r.dueDate,
             ),
           )
           .toList(),
@@ -83,7 +86,13 @@ class HistoryRepository {
       final items = rows
           .where((row) {
             final task = row.readTable(_db.tasks);
-            return isTaskActiveOn(task.createdAt, task.archivedAt, localDate);
+            return isTaskDueOn(
+              createdAt: task.createdAt,
+              archivedAt: task.archivedAt,
+              recurrenceRule: task.recurrenceRule,
+              dueDate: task.dueDate,
+              day: localDate,
+            );
           })
           .map((row) {
             final task = row.readTable(_db.tasks);

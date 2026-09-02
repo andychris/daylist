@@ -1,6 +1,7 @@
 import 'package:daylist/data/database/app_database.dart';
 import 'package:daylist/data/notifications/notification_scheduler.dart';
 import 'package:daylist/domain/models/task_category.dart';
+import 'package:daylist/domain/models/task_priority.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../fakes/fake_notifications_gateway.dart';
@@ -23,11 +24,17 @@ void main() {
     return TaskRow(
       id: id,
       title: title,
+      description: null,
       createdAt: DateTime(2026, 1, 1),
       archivedAt: archivedAt,
       sortOrder: 1000,
       category: TaskCategory.other,
       reminderMinuteOfDay: reminderMinuteOfDay,
+      dueDate: null,
+      recurrenceRule: null,
+      priority: TaskPriority.p4,
+      projectId: null,
+      sectionId: null,
     );
   }
 

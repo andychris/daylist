@@ -19,9 +19,7 @@ int computeCurrentStreak({
   required Map<String, int> completedCountsByDate,
 }) {
   bool isFullyDone(DateTime day) {
-    final activeCount = tasks
-        .where((t) => isTaskActiveOn(t.createdAt, t.archivedAt, day))
-        .length;
+    final activeCount = tasks.where((t) => t.isDueOn(day)).length;
     if (activeCount == 0) return false;
     final completed = completedCountsByDate[formatLocalDate(day)] ?? 0;
     return completed >= activeCount;

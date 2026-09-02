@@ -13,6 +13,20 @@ void main() {
   DayRings ringsFor(List<DayRings> rings, DateTime date) =>
       rings.firstWhere((r) => r.date == date);
 
+  // All tasks below are pre-migration-style "daily habits" (recurs every
+  // day forever) unless a test is specifically about one-off due dates.
+  TaskLifespan dailyTask({
+    required int id,
+    required DateTime createdAt,
+    DateTime? archivedAt,
+  }) => TaskLifespan(
+    id: id,
+    createdAt: createdAt,
+    archivedAt: archivedAt,
+    recurrenceRule: 'daily',
+    dueDate: null,
+  );
+
   test('no tasks all month: no goal anywhere, consistency is null', () {
     final rings = computeMonthRings(
       monthAnchor: monthAnchor,
@@ -35,7 +49,7 @@ void main() {
     final createdAt = DateTime(2026, 3, 10);
     final rings = computeMonthRings(
       monthAnchor: monthAnchor,
-      tasks: [TaskLifespan(id: 1, createdAt: createdAt, archivedAt: null)],
+      tasks: [dailyTask(id: 1, createdAt: createdAt)],
       completedCountsByDate: const {},
       today: monthEnd,
     );
@@ -56,7 +70,7 @@ void main() {
     final rings = computeMonthRings(
       monthAnchor: monthAnchor,
       tasks: [
-        TaskLifespan(
+        dailyTask(
           id: 1,
           createdAt: DateTime(2026, 3, 1),
           archivedAt: DateTime(2026, 3, 10, 18, 0),
@@ -73,9 +87,7 @@ void main() {
   test('rolling average pulls into the previous month for early-month days', () {
     // One task active the whole time, completed every day in the last week
     // of February, not completed at all in March.
-    final tasks = [
-      TaskLifespan(id: 1, createdAt: DateTime(2026, 2, 1), archivedAt: null),
-    ];
+    final tasks = [dailyTask(id: 1, createdAt: DateTime(2026, 2, 1))];
     final completedCountsByDate = {
       for (var d = 23; d <= 28; d++) '2026-02-${d.toString().padLeft(2, '0')}': 1,
     };
@@ -100,8 +112,8 @@ void main() {
 
   test('multiple tasks with partial completion', () {
     final tasks = [
-      TaskLifespan(id: 1, createdAt: DateTime(2026, 3, 1), archivedAt: null),
-      TaskLifespan(id: 2, createdAt: DateTime(2026, 3, 1), archivedAt: null),
+      dailyTask(id: 1, createdAt: DateTime(2026, 3, 1)),
+      dailyTask(id: 2, createdAt: DateTime(2026, 3, 1)),
     ];
     final rings = computeMonthRings(
       monthAnchor: monthAnchor,
@@ -116,6 +128,29 @@ void main() {
     expect(day.progressFraction, 0.5);
   });
 
+  test('a one-off task only shows a goal on and after its due date', () {
+    final tasks = [
+      TaskLifespan(
+        id: 1,
+        createdAt: DateTime(2026, 3, 1),
+        archivedAt: null,
+        recurrenceRule: null,
+        dueDate: DateTime(2026, 3, 12),
+      ),
+    ];
+    final rings = computeMonthRings(
+      monthAnchor: monthAnchor,
+      tasks: tasks,
+      completedCountsByDate: const {},
+      today: monthEnd,
+    );
+
+    expect(ringsFor(rings, DateTime(2026, 3, 11)).hasGoal, isFalse);
+    expect(ringsFor(rings, DateTime(2026, 3, 12)).hasGoal, isTrue);
+    // Overdue and not completed -> stays a goal on later days too.
+    expect(ringsFor(rings, DateTime(2026, 3, 20)).hasGoal, isTrue);
+  });
+
   group('future days', () {
     // "Today" is mid-month; days after it haven't happened yet.
     final today = DateTime(2026, 3, 15);
@@ -123,9 +158,7 @@ void main() {
     test('a still-active task does not make a future day show a goal', () {
       final rings = computeMonthRings(
         monthAnchor: monthAnchor,
-        tasks: [
-          TaskLifespan(id: 1, createdAt: DateTime(2026, 3, 1), archivedAt: null),
-        ],
+        tasks: [dailyTask(id: 1, createdAt: DateTime(2026, 3, 1))],
         completedCountsByDate: const {},
         today: today,
       );
@@ -141,9 +174,7 @@ void main() {
     test('today itself is computed normally, not treated as future', () {
       final rings = computeMonthRings(
         monthAnchor: monthAnchor,
-        tasks: [
-          TaskLifespan(id: 1, createdAt: DateTime(2026, 3, 1), archivedAt: null),
-        ],
+        tasks: [dailyTask(id: 1, createdAt: DateTime(2026, 3, 1))],
         completedCountsByDate: const {'2026-03-15': 1},
         today: today,
       );
@@ -158,9 +189,7 @@ void main() {
     test('a stray completion row for a future date is ignored', () {
       final rings = computeMonthRings(
         monthAnchor: monthAnchor,
-        tasks: [
-          TaskLifespan(id: 1, createdAt: DateTime(2026, 3, 1), archivedAt: null),
-        ],
+        tasks: [dailyTask(id: 1, createdAt: DateTime(2026, 3, 1))],
         completedCountsByDate: const {'2026-03-20': 1},
         today: today,
       );

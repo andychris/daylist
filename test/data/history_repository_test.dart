@@ -18,6 +18,10 @@ void main() {
     await db.close();
   });
 
+  // These tests predate due dates/recurrence and exercise lifespan
+  // (created/archived window) logic only, so every inserted task recurs
+  // daily by default — matching the pre-migration "habit" behavior these
+  // fixtures were written to represent.
   Future<int> insertTask({
     required DateTime createdAt,
     DateTime? archivedAt,
@@ -31,6 +35,7 @@ void main() {
             sortOrder: 0,
             createdAt: Value(createdAt),
             archivedAt: Value(archivedAt),
+            recurrenceRule: const Value('daily'),
           ),
         );
   }
