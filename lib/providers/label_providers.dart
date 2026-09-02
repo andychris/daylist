@@ -18,3 +18,12 @@ final taskLabelsProvider = StreamProvider.family<List<Label>, int>((
 ) {
   return ref.watch(labelRepositoryProvider).watchLabelsForTask(taskId);
 });
+
+final allTaskLabelPairsProvider = StreamProvider<Map<int, Set<int>>>((ref) {
+  return ref.watch(labelRepositoryProvider).watchAllTaskLabelPairs();
+});
+
+final labelByIdProvider = Provider<Map<int, Label>>((ref) {
+  final labels = ref.watch(allLabelsProvider).valueOrNull ?? const [];
+  return {for (final l in labels) l.id: l};
+});

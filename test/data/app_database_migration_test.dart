@@ -7,6 +7,7 @@ import '../generated/schema.dart';
 import '../generated/schema_v1.dart' as v1;
 import '../generated/schema_v2.dart' as v2;
 import '../generated/schema_v3.dart' as v3;
+import '../generated/schema_v4.dart' as v4;
 
 void main() {
   final verifier = SchemaVerifier(GeneratedHelper());
@@ -94,4 +95,35 @@ void main() {
       );
     },
   );
+
+  test('v3 -> v4 adds the SavedFilters table', () async {
+    await verifier.testWithDataIntegrity(
+      oldVersion: 3,
+      newVersion: 4,
+      createOld: v3.DatabaseAtV3.new,
+      createNew: v4.DatabaseAtV4.new,
+      openTestedDatabase: AppDatabase.forTesting,
+      createItems: (batch, oldDb) {
+        batch.insert(
+          oldDb.tasks,
+          v3.TasksCompanion.insert(title: 'Meditate', sortOrder: 1000),
+        );
+      },
+      validateItems: (newDb) async {
+        final id = await newDb
+            .into(newDb.savedFilters)
+            .insert(
+              v4.SavedFiltersCompanion.insert(
+                name: 'P1 today',
+                query: 'p1 & today',
+                sortOrder: 0,
+              ),
+            );
+        final filter = await (newDb.select(
+          newDb.savedFilters,
+        )..where((f) => f.id.equals(id))).getSingle();
+        expect(filter.query, 'p1 & today');
+      },
+    );
+  });
 }

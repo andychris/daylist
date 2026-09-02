@@ -10,6 +10,7 @@ import '../calendar/calendar_page.dart';
 import '../inbox/inbox_page.dart';
 import '../projects/projects_list_page.dart';
 import '../upcoming/upcoming_page.dart';
+import '../widgets/app_drawer.dart';
 import '../widgets/task_row.dart';
 import 'widgets/add_task_sheet.dart';
 import 'widgets/completion_celebration.dart';
@@ -27,6 +28,7 @@ class HomePage extends ConsumerWidget {
     final today = ref.watch(currentLocalDateProvider);
 
     return Scaffold(
+      drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text('Today'),
         actions: [

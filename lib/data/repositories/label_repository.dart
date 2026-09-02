@@ -30,6 +30,19 @@ class LabelRepository {
     );
   }
 
+  /// Every task's label ids, all at once — for the filter engine and
+  /// label-based task lookups, which need to check membership across many
+  /// tasks rather than one at a time.
+  Stream<Map<int, Set<int>>> watchAllTaskLabelPairs() {
+    return _db.select(_db.taskLabels).watch().map((rows) {
+      final byTask = <int, Set<int>>{};
+      for (final row in rows) {
+        byTask.putIfAbsent(row.taskId, () => {}).add(row.labelId);
+      }
+      return byTask;
+    });
+  }
+
   Future<int> addLabel({required String name, String colorHex = '#808080'}) {
     final trimmed = name.trim();
     return _db

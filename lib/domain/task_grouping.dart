@@ -1,6 +1,31 @@
 import 'due_logic.dart';
 import 'models/checklist_item.dart';
 
+enum DueBucket { overdue, dueToday, upcoming, inbox }
+
+/// Classifies a single task's due-ness as of [today] — the same rule
+/// [groupTasksByDueness] uses per-task, exposed separately so the filter
+/// engine (`p1 & (today | overdue)`) can reuse the exact same logic rather
+/// than a parallel definition that could drift out of sync.
+DueBucket classifyDueBucket(ChecklistItem task, DateTime today) {
+  if (task.recurrenceRule != null) {
+    // A recurring task is never "Inbox" or "Overdue" — it's either due
+    // today, or due again on some future day its rule matches, which
+    // `upcoming` is the closest fit for (nothing here claims a *specific*
+    // future date the way a one-off task's upcoming bucket does).
+    return matchesRecurrence(task.recurrenceRule!, today, task.createdAt)
+        ? DueBucket.dueToday
+        : DueBucket.upcoming;
+  }
+
+  if (task.dueDate == null) return DueBucket.inbox;
+
+  final due = DateTime(task.dueDate!.year, task.dueDate!.month, task.dueDate!.day);
+  if (due.isBefore(today)) return DueBucket.overdue;
+  if (due.isAtSameMomentAs(today)) return DueBucket.dueToday;
+  return DueBucket.upcoming;
+}
+
 class GroupedTasks {
   const GroupedTasks({
     required this.overdue,
@@ -44,22 +69,20 @@ GroupedTasks groupTasksByDueness(List<ChecklistItem> tasks, DateTime today) {
       continue;
     }
 
-    if (task.dueDate == null) {
-      inbox.add(task);
-      continue;
-    }
-
-    final due = DateTime(
-      task.dueDate!.year,
-      task.dueDate!.month,
-      task.dueDate!.day,
-    );
-    if (due.isBefore(today)) {
-      overdue.add(task);
-    } else if (due.isAtSameMomentAs(today)) {
-      dueToday.add(task);
-    } else {
-      upcoming.putIfAbsent(due, () => []).add(task);
+    switch (classifyDueBucket(task, today)) {
+      case DueBucket.overdue:
+        overdue.add(task);
+      case DueBucket.dueToday:
+        dueToday.add(task);
+      case DueBucket.upcoming:
+        final due = DateTime(
+          task.dueDate!.year,
+          task.dueDate!.month,
+          task.dueDate!.day,
+        );
+        upcoming.putIfAbsent(due, () => []).add(task);
+      case DueBucket.inbox:
+        inbox.add(task);
     }
   }
 

@@ -9,6 +9,7 @@ import 'converters/task_category_converter.dart';
 import 'converters/task_priority_converter.dart';
 import 'tables/labels_table.dart';
 import 'tables/projects_table.dart';
+import 'tables/saved_filters_table.dart';
 import 'tables/sections_table.dart';
 import 'tables/task_completions_table.dart';
 import 'tables/task_labels_table.dart';
@@ -17,7 +18,15 @@ import 'tables/tasks_table.dart';
 part 'app_database.g.dart';
 
 @DriftDatabase(
-  tables: [Tasks, TaskCompletions, Projects, Sections, Labels, TaskLabels],
+  tables: [
+    Tasks,
+    TaskCompletions,
+    Projects,
+    Sections,
+    Labels,
+    TaskLabels,
+    SavedFilters,
+  ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
@@ -25,7 +34,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -60,6 +69,9 @@ class AppDatabase extends _$AppDatabase {
         )..where((t) => t.recurrenceRule.isNull())).write(
           const TasksCompanion(recurrenceRule: Value('daily')),
         );
+      }
+      if (from < 4 && to >= 4) {
+        await m.createTable(savedFilters);
       }
     },
   );
