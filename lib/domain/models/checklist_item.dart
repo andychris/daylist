@@ -13,6 +13,7 @@ class ChecklistItem {
     required this.projectId,
     required this.dueDate,
     required this.recurrenceRule,
+    required this.createdAt,
   });
 
   final int id;
@@ -31,6 +32,7 @@ class ChecklistItem {
   final int? projectId;
   final DateTime? dueDate;
   final String? recurrenceRule;
+  final DateTime createdAt;
 
   ChecklistItem copyWith({bool? isDoneToday}) => ChecklistItem(
     id: id,
@@ -43,5 +45,6 @@ class ChecklistItem {
     projectId: projectId,
     dueDate: dueDate,
     recurrenceRule: recurrenceRule,
+    createdAt: createdAt,
   );
 }

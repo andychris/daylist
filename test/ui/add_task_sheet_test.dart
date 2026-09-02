@@ -28,7 +28,10 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.add));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField), 'Ship the release');
+    // "today" so the task is actually due today and shows up on the Today
+    // page these assertions check — an undated task would go to Inbox
+    // instead. The parser strips the recognized token back out.
+    await tester.enterText(find.byType(TextField), 'Ship the release today');
     // warnIfMissed: false — the ChoiceChip's avatar icon and label sit in
     // the same InkWell, so a center-of-text tap can register a fraction of
     // a pixel outside the label's own RenderParagraph; the chip still
@@ -65,7 +68,10 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.add));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField), 'Ship the release');
+    // "today" so the task is actually due today and shows up on the Today
+    // page these assertions check — an undated task would go to Inbox
+    // instead. The parser strips the recognized token back out.
+    await tester.enterText(find.byType(TextField), 'Ship the release today');
     await tester.tap(find.byType(DropdownButtonFormField<int?>));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Launch').last);

@@ -41,6 +41,7 @@ class ChecklistRepository {
           projectId: task.projectId,
           dueDate: task.dueDate,
           recurrenceRule: task.recurrenceRule,
+          createdAt: task.createdAt,
         );
       }).toList();
 
@@ -54,7 +55,8 @@ class ChecklistRepository {
     });
   }
 
-  Future<void> addTask({
+  /// Returns the new task's id, or null if [title] was blank (no-op).
+  Future<int?> addTask({
     required String title,
     TaskCategory category = TaskCategory.other,
     int? reminderMinuteOfDay,
@@ -64,7 +66,7 @@ class ChecklistRepository {
     String? recurrenceRule,
   }) async {
     final trimmed = title.trim();
-    if (trimmed.isEmpty) return;
+    if (trimmed.isEmpty) return null;
 
     final id = await _db.transaction(() async {
       final maxOrder = await (_db.selectOnly(_db.tasks)
@@ -94,6 +96,8 @@ class ChecklistRepository {
       )..where((t) => t.id.equals(id))).getSingle();
       await _notificationScheduler.scheduleReminder(task);
     }
+
+    return id;
   }
 
   /// Updates an existing task. Omitted parameters leave that field
@@ -128,18 +132,35 @@ class ChecklistRepository {
     await _notificationScheduler.scheduleReminder(task);
   }
 
+  /// Toggles [taskId]'s completion for [localDate]. A **recurring** task
+  /// stays active either way — only its per-day completion row changes, so
+  /// it's still there (with a fresh due day) the next time its rule
+  /// matches. A **one-off** task instead gets archived on completion (and
+  /// un-archived if toggled back) — once done, a one-off task is done for
+  /// good, the same "archive" a swipe-to-delete already uses, so it's not
+  /// still "due" — and thus still showing up as overdue-and-incomplete —
+  /// on every day after this one.
   Future<void> toggleCompletion({
     required int taskId,
     required DateTime localDate,
     required bool isCurrentlyDone,
   }) async {
     final dateKey = formatLocalDate(localDate);
+    final task = await (_db.select(
+      _db.tasks,
+    )..where((t) => t.id.equals(taskId))).getSingle();
+    final isRecurring = task.recurrenceRule != null;
 
     if (isCurrentlyDone) {
       await (_db.delete(_db.taskCompletions)..where(
             (c) => c.taskId.equals(taskId) & c.date.equals(dateKey),
           ))
           .go();
+      if (!isRecurring) {
+        await (_db.update(_db.tasks)..where((t) => t.id.equals(taskId))).write(
+          const TasksCompanion(archivedAt: Value(null)),
+        );
+      }
     } else {
       await _db
           .into(_db.taskCompletions)
@@ -147,6 +168,11 @@ class ChecklistRepository {
             TaskCompletionsCompanion.insert(taskId: taskId, date: dateKey),
             mode: InsertMode.insertOrIgnore,
           );
+      if (!isRecurring) {
+        await (_db.update(_db.tasks)..where((t) => t.id.equals(taskId))).write(
+          TasksCompanion(archivedAt: Value(DateTime.now())),
+        );
+      }
     }
   }
 

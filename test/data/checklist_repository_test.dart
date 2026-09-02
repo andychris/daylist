@@ -2,7 +2,7 @@ import 'package:daylist/data/database/app_database.dart';
 import 'package:daylist/data/notifications/notification_scheduler.dart';
 import 'package:daylist/data/repositories/checklist_repository.dart';
 import 'package:daylist/domain/models/task_category.dart';
-import 'package:drift/drift.dart' hide isNull;
+import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -28,8 +28,16 @@ void main() {
 
   final today = DateTime(2026, 3, 5);
 
-  Future<void> addTask(String title, {TaskCategory category = TaskCategory.other}) {
-    return repository.addTask(title: title, category: category);
+  Future<void> addTask(
+    String title, {
+    TaskCategory category = TaskCategory.other,
+    String? recurrenceRule,
+  }) {
+    return repository.addTask(
+      title: title,
+      category: category,
+      recurrenceRule: recurrenceRule,
+    );
   }
 
   test('adding tasks assigns increasing sortOrder', () async {
@@ -129,6 +137,47 @@ void main() {
     expect(completions, isEmpty);
   });
 
+  test('completing a one-off task archives it; un-completing restores it', () async {
+    await addTask('Buy milk'); // one-off by default (no recurrenceRule)
+    final task = (await db.select(db.tasks).get()).single;
+
+    await repository.toggleCompletion(
+      taskId: task.id,
+      localDate: today,
+      isCurrentlyDone: false,
+    );
+    var stored = await (db.select(
+      db.tasks,
+    )..where((t) => t.id.equals(task.id))).getSingle();
+    expect(stored.archivedAt, isNotNull);
+
+    await repository.toggleCompletion(
+      taskId: task.id,
+      localDate: today,
+      isCurrentlyDone: true,
+    );
+    stored = await (db.select(
+      db.tasks,
+    )..where((t) => t.id.equals(task.id))).getSingle();
+    expect(stored.archivedAt, isNull);
+  });
+
+  test('completing a recurring task does not archive it', () async {
+    await addTask('Meditate', recurrenceRule: 'daily');
+    final task = (await db.select(db.tasks).get()).single;
+
+    await repository.toggleCompletion(
+      taskId: task.id,
+      localDate: today,
+      isCurrentlyDone: false,
+    );
+
+    final stored = await (db.select(
+      db.tasks,
+    )..where((t) => t.id.equals(task.id))).getSingle();
+    expect(stored.archivedAt, isNull);
+  });
+
   test('double toggle-on does not violate the unique key', () async {
     await addTask('Meditate');
     final task = (await db.select(db.tasks).get()).single;
@@ -169,7 +218,10 @@ void main() {
   });
 
   test('watchChecklistForDate only marks the queried date as done', () async {
-    await addTask('Meditate');
+    // Recurring so it stays active (and visible) across both dates below —
+    // a one-off task instead archives on completion (see the
+    // toggleCompletion tests), so it wouldn't be there to compare.
+    await addTask('Meditate', recurrenceRule: 'daily');
     final task = (await db.select(db.tasks).get()).single;
 
     await repository.toggleCompletion(
