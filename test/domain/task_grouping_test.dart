@@ -25,6 +25,7 @@ void main() {
       dueDate: dueDate,
       recurrenceRule: recurrenceRule,
       createdAt: createdAt ?? DateTime(2026, 1, 1),
+      sectionId: null,
     );
   }
 

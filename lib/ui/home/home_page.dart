@@ -8,6 +8,7 @@ import '../../providers/checklist_providers.dart';
 import '../../providers/date_provider.dart';
 import '../calendar/calendar_page.dart';
 import '../inbox/inbox_page.dart';
+import '../projects/projects_list_page.dart';
 import '../upcoming/upcoming_page.dart';
 import '../widgets/task_row.dart';
 import 'widgets/add_task_sheet.dart';
@@ -38,6 +39,12 @@ class HomePage extends ConsumerWidget {
             icon: const Icon(Icons.upcoming_outlined),
             tooltip: 'Upcoming',
             onPressed: () => Navigator.of(context).push(UpcomingPage.route()),
+          ),
+          IconButton(
+            icon: const Icon(Icons.folder_outlined),
+            tooltip: 'Projects',
+            onPressed: () =>
+                Navigator.of(context).push(ProjectsListPage.route()),
           ),
           IconButton(
             icon: const Icon(Icons.calendar_month),

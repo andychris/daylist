@@ -109,6 +109,7 @@ class HistoryRepository {
               dueDate: task.dueDate,
               recurrenceRule: task.recurrenceRule,
               createdAt: task.createdAt,
+              sectionId: task.sectionId,
             );
           })
           .toList();

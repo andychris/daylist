@@ -178,6 +178,48 @@ void main() {
     expect(stored.archivedAt, isNull);
   });
 
+  test('moveTaskToSection appends to the end of the target section', () async {
+    final projectId = await db
+        .into(db.projects)
+        .insert(ProjectsCompanion.insert(name: 'Launch', sortOrder: 0));
+    final sectionId = await db
+        .into(db.sections)
+        .insert(
+          SectionsCompanion.insert(
+            name: 'Doing',
+            projectId: projectId,
+            sortOrder: 0,
+          ),
+        );
+    final existingId = await db
+        .into(db.tasks)
+        .insert(
+          TasksCompanion.insert(
+            title: 'Existing',
+            sortOrder: 5000,
+            sectionId: Value(sectionId),
+          ),
+        );
+    await addTask('Dragged in');
+    final draggedTaskRow = await (db.select(
+      db.tasks,
+    )..where((t) => t.title.equals('Dragged in'))).getSingle();
+
+    await repository.moveTaskToSection(
+      taskId: draggedTaskRow.id,
+      sectionId: sectionId,
+    );
+
+    final moved = await (db.select(
+      db.tasks,
+    )..where((t) => t.id.equals(draggedTaskRow.id))).getSingle();
+    final existing = await (db.select(
+      db.tasks,
+    )..where((t) => t.id.equals(existingId))).getSingle();
+    expect(moved.sectionId, sectionId);
+    expect(moved.sortOrder, greaterThan(existing.sortOrder));
+  });
+
   test('double toggle-on does not violate the unique key', () async {
     await addTask('Meditate');
     final task = (await db.select(db.tasks).get()).single;

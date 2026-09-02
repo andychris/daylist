@@ -19,13 +19,17 @@ import '../../widgets/quick_add_text_controller.dart';
 /// (see [parseQuickAddInput]) — the pickers below are a manual fallback/
 /// override for anything not (or not yet) typed.
 class AddTaskSheet extends ConsumerStatefulWidget {
-  const AddTaskSheet({super.key});
+  const AddTaskSheet({super.key, this.initialProjectId});
 
-  static Future<void> show(BuildContext context) {
+  /// Pre-selects a project (e.g. opened from within that project's page)
+  /// rather than defaulting to Inbox.
+  final int? initialProjectId;
+
+  static Future<void> show(BuildContext context, {int? initialProjectId}) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (context) => const AddTaskSheet(),
+      builder: (context) => AddTaskSheet(initialProjectId: initialProjectId),
     );
   }
 
@@ -38,8 +42,8 @@ class _AddTaskSheetState extends ConsumerState<AddTaskSheet> {
   ParsedQuickAddResult _parsed = parseQuickAddInput('', now: DateTime.now());
 
   TaskPriority? _priorityOverride;
-  int? _projectIdOverride;
-  bool _projectTouched = false;
+  late int? _projectIdOverride = widget.initialProjectId;
+  late bool _projectTouched = widget.initialProjectId != null;
 
   @override
   void initState() {

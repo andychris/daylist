@@ -14,6 +14,7 @@ class ChecklistItem {
     required this.dueDate,
     required this.recurrenceRule,
     required this.createdAt,
+    required this.sectionId,
   });
 
   final int id;
@@ -34,6 +35,10 @@ class ChecklistItem {
   final String? recurrenceRule;
   final DateTime createdAt;
 
+  /// Null means the task isn't placed in a Kanban section (e.g. Inbox, or
+  /// a project with no board view).
+  final int? sectionId;
+
   ChecklistItem copyWith({bool? isDoneToday}) => ChecklistItem(
     id: id,
     title: title,
@@ -46,5 +51,6 @@ class ChecklistItem {
     dueDate: dueDate,
     recurrenceRule: recurrenceRule,
     createdAt: createdAt,
+    sectionId: sectionId,
   );
 }

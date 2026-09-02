@@ -42,6 +42,7 @@ class ChecklistRepository {
           dueDate: task.dueDate,
           recurrenceRule: task.recurrenceRule,
           createdAt: task.createdAt,
+          sectionId: task.sectionId,
         );
       }).toList();
 
@@ -62,6 +63,7 @@ class ChecklistRepository {
     int? reminderMinuteOfDay,
     TaskPriority priority = TaskPriority.p4,
     int? projectId,
+    int? sectionId,
     DateTime? dueDate,
     String? recurrenceRule,
   }) async {
@@ -84,6 +86,7 @@ class ChecklistRepository {
               reminderMinuteOfDay: Value(reminderMinuteOfDay),
               priority: Value(priority),
               projectId: Value(projectId),
+              sectionId: Value(sectionId),
               dueDate: Value(dueDate),
               recurrenceRule: Value(recurrenceRule),
             ),
@@ -111,8 +114,10 @@ class ChecklistRepository {
     Value<int?> reminderMinuteOfDay = const Value.absent(),
     TaskPriority? priority,
     Value<int?> projectId = const Value.absent(),
+    Value<int?> sectionId = const Value.absent(),
     Value<DateTime?> dueDate = const Value.absent(),
     Value<String?> recurrenceRule = const Value.absent(),
+    double? sortOrder,
   }) async {
     await (_db.update(_db.tasks)..where((t) => t.id.equals(taskId))).write(
       TasksCompanion(
@@ -121,8 +126,10 @@ class ChecklistRepository {
         reminderMinuteOfDay: reminderMinuteOfDay,
         priority: priority != null ? Value(priority) : const Value.absent(),
         projectId: projectId,
+        sectionId: sectionId,
         dueDate: dueDate,
         recurrenceRule: recurrenceRule,
+        sortOrder: sortOrder != null ? Value(sortOrder) : const Value.absent(),
       ),
     );
 
@@ -130,6 +137,30 @@ class ChecklistRepository {
       _db.tasks,
     )..where((t) => t.id.equals(taskId))).getSingle();
     await _notificationScheduler.scheduleReminder(task);
+  }
+
+  /// Moves [taskId] to the end of [sectionId] (null = no section, e.g. a
+  /// project with no board), used by the Kanban board's cross-column drag.
+  Future<void> moveTaskToSection({
+    required int taskId,
+    required int? sectionId,
+  }) async {
+    final maxOrder = await (_db.selectOnly(_db.tasks)
+          ..addColumns([_db.tasks.sortOrder.max()])
+          ..where(
+            sectionId == null
+                ? _db.tasks.sectionId.isNull()
+                : _db.tasks.sectionId.equals(sectionId),
+          ))
+        .map((row) => row.read(_db.tasks.sortOrder.max()))
+        .getSingleOrNull();
+
+    await (_db.update(_db.tasks)..where((t) => t.id.equals(taskId))).write(
+      TasksCompanion(
+        sectionId: Value(sectionId),
+        sortOrder: Value((maxOrder ?? 0) + 1000),
+      ),
+    );
   }
 
   /// Toggles [taskId]'s completion for [localDate]. A **recurring** task
