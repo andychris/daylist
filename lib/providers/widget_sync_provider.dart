@@ -13,8 +13,7 @@ final todayWidgetGatewayProvider = Provider<TodayWidgetGateway>((ref) {
 final widgetSyncProvider = Provider<void>((ref) {
   final groupedAsync = ref.watch(groupedTasksProvider);
   groupedAsync.whenData((grouped) {
-    final onPlate = [...grouped.overdue, ...grouped.dueToday]
-      ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+    final onPlate = [...grouped.overdue, ...grouped.dueToday];
     ref.read(todayWidgetGatewayProvider).updateTodayTasks(onPlate);
   });
 });

@@ -3,7 +3,12 @@ package com.santosh.daylist
 import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.SharedPreferences
+import android.graphics.Color
 import android.net.Uri
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.style.ForegroundColorSpan
+import android.text.style.StrikethroughSpan
 import android.view.View
 import android.widget.RemoteViews
 import es.antonborri.home_widget.HomeWidgetBackgroundIntent
@@ -13,11 +18,13 @@ import org.json.JSONArray
 
 /**
  * A fixed-row (not RemoteViewsService-backed) home-screen widget: up to
- * [MAX_ROWS] of today's due tasks, each row completing that task via a
- * background Dart callback (see `today_widget_background_handler.dart`),
- * plus a "+" that launches the app straight into quick-add. The task data
- * itself is written from Dart via `HomeWidget.saveWidgetData` under the
- * `today_tasks` key (a JSON array of `{id, title}`).
+ * [MAX_ROWS] of today's due tasks, each row toggling that task's
+ * completion via a background Dart callback (see
+ * `today_widget_background_handler.dart`), plus a "+" that launches the
+ * app straight into quick-add. The task data itself is written from Dart
+ * via `HomeWidget.saveWidgetData` under the `today_tasks` key (a JSON
+ * array of `{id, title, done}`, not-done rows first — see
+ * `TodayWidgetGateway.updateTodayTasks`).
  */
 class TodayWidgetProvider : HomeWidgetProvider() {
     companion object {
@@ -59,14 +66,15 @@ class TodayWidgetProvider : HomeWidgetProvider() {
                             val task = tasks.getJSONObject(i)
                             val taskId = task.getInt("id")
                             val title = task.getString("title")
-                            setTextViewText(rowId, "☐ $title")
+                            val done = task.optBoolean("done", false)
+                            setTextViewText(rowId, rowText(title, done))
                             setViewVisibility(rowId, View.VISIBLE)
-                            val completeIntent =
+                            val toggleIntent =
                                 HomeWidgetBackgroundIntent.getBroadcast(
                                     context,
                                     Uri.parse("todaywidget://complete?taskId=$taskId"),
                                 )
-                            setOnClickPendingIntent(rowId, completeIntent)
+                            setOnClickPendingIntent(rowId, toggleIntent)
                             visibleCount++
                         } else {
                             setViewVisibility(rowId, View.GONE)
@@ -79,6 +87,26 @@ class TodayWidgetProvider : HomeWidgetProvider() {
                 }
 
             appWidgetManager.updateAppWidget(widgetId, views)
+        }
+    }
+
+    /**
+     * "☑ Title" struck through and greyed out when [done], "☐ Title" in
+     * normal text otherwise — the visible confirmation a tap actually did
+     * something, which a plain text swap (or no change, for a still-due
+     * recurring task) doesn't give the user.
+     */
+    private fun rowText(title: String, done: Boolean): CharSequence {
+        val text = "${if (done) "☑" else "☐"} $title"
+        if (!done) return text
+        return SpannableString(text).apply {
+            setSpan(StrikethroughSpan(), 0, text.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            setSpan(
+                ForegroundColorSpan(Color.parseColor("#FF808080")),
+                0,
+                text.length,
+                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE,
+            )
         }
     }
 }

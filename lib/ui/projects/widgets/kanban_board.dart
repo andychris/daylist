@@ -7,6 +7,7 @@ import '../../../providers/checklist_providers.dart';
 import '../../../providers/section_providers.dart';
 import '../../edit_task/edit_task_page.dart';
 import '../../home/widgets/checklist_item_tile.dart';
+import '../../widgets/task_row.dart' show completionAnimationDelay;
 
 const _columnWidth = 260.0;
 
@@ -128,7 +129,7 @@ class _KanbanColumn extends StatelessWidget {
   }
 }
 
-class _KanbanCard extends StatelessWidget {
+class _KanbanCard extends StatefulWidget {
   const _KanbanCard({
     required this.task,
     required this.repository,
@@ -140,16 +141,47 @@ class _KanbanCard extends StatelessWidget {
   final DateTime today;
 
   @override
+  State<_KanbanCard> createState() => _KanbanCardState();
+}
+
+class _KanbanCardState extends State<_KanbanCard> {
+  bool _pendingComplete = false;
+
+  Future<void> _handleToggle() async {
+    if (widget.task.isDoneToday) {
+      await widget.repository.toggleCompletion(
+        taskId: widget.task.id,
+        localDate: widget.today,
+        isCurrentlyDone: true,
+      );
+      return;
+    }
+
+    if (_pendingComplete) return;
+    setState(() => _pendingComplete = true);
+    // A one-off task archives on completion (and so disappears from the
+    // board) — this brief pause lets the checked/struck-through state
+    // actually register before that happens. See task_row.dart.
+    await Future.delayed(completionAnimationDelay);
+    if (!mounted) return;
+    await widget.repository.toggleCompletion(
+      taskId: widget.task.id,
+      localDate: widget.today,
+      isCurrentlyDone: false,
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final task = widget.task;
+    final displayTask = _pendingComplete
+        ? task.copyWith(isDoneToday: true)
+        : task;
     final card = Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
       child: ChecklistItemTile(
-        item: task,
-        onToggle: () => repository.toggleCompletion(
-          taskId: task.id,
-          localDate: today,
-          isCurrentlyDone: task.isDoneToday,
-        ),
+        item: displayTask,
+        onToggle: _handleToggle,
         onTap: () => Navigator.of(context).push(EditTaskPage.route(task)),
       ),
     );

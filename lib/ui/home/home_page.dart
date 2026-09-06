@@ -50,7 +50,12 @@ class _HomePageState extends ConsumerState<HomePage> {
   void _handleWidgetUri(Uri? uri) {
     if (uri?.host != 'add') return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) AddTaskSheet.show(context);
+      if (mounted) {
+        AddTaskSheet.show(
+          context,
+          defaultDueDate: ref.read(currentLocalDateProvider),
+        );
+      }
     });
   }
 
@@ -161,7 +166,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => AddTaskSheet.show(context),
+        onPressed: () => AddTaskSheet.show(context, defaultDueDate: today),
         child: const Icon(Icons.add),
       ),
     );

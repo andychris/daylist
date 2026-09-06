@@ -20,13 +20,14 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await tester.tap(find.byIcon(Icons.inbox_outlined));
+    await tester.pumpAndSettle();
+    // Adding from within Inbox itself (rather than Today's "+", which
+    // defaults an otherwise-undated task to today) keeps it undated.
     await tester.tap(find.byIcon(Icons.add));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'Someday maybe');
     await tester.tap(find.text('Add task'));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byIcon(Icons.inbox_outlined));
     await tester.pumpAndSettle();
 
     expect(find.text('Someday maybe'), findsOneWidget);

@@ -20,17 +20,30 @@ import '../../widgets/quick_add_text_controller.dart';
 /// (see [parseQuickAddInput]) — the pickers below are a manual fallback/
 /// override for anything not (or not yet) typed.
 class AddTaskSheet extends ConsumerStatefulWidget {
-  const AddTaskSheet({super.key, this.initialProjectId});
+  const AddTaskSheet({super.key, this.initialProjectId, this.defaultDueDate});
 
   /// Pre-selects a project (e.g. opened from within that project's page)
   /// rather than defaulting to Inbox.
   final int? initialProjectId;
 
-  static Future<void> show(BuildContext context, {int? initialProjectId}) {
+  /// Used as the due date when nothing typed resolves one (no date and no
+  /// recurrence) — e.g. the Today screen's "+" passes today's date, so a
+  /// plain "Buy milk" still shows up there instead of silently landing in
+  /// Inbox. Typing an explicit date/recurrence always overrides this.
+  final DateTime? defaultDueDate;
+
+  static Future<void> show(
+    BuildContext context, {
+    int? initialProjectId,
+    DateTime? defaultDueDate,
+  }) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (context) => AddTaskSheet(initialProjectId: initialProjectId),
+      builder: (context) => AddTaskSheet(
+        initialProjectId: initialProjectId,
+        defaultDueDate: defaultDueDate,
+      ),
     );
   }
 
@@ -79,6 +92,13 @@ class _AddTaskSheetState extends ConsumerState<AddTaskSheet> {
     return null;
   }
 
+  /// [_parsed.dueDate], or [AddTaskSheet.defaultDueDate] if nothing typed
+  /// resolved a date *and* no recurrence was typed either — a recurring
+  /// task has no fixed one-time due date, so the default shouldn't apply.
+  DateTime? get _effectiveDueDate =>
+      _parsed.dueDate ??
+      (_parsed.recurrenceRule == null ? widget.defaultDueDate : null);
+
   Future<void> _submit() async {
     final parsed = _parsed;
     if (parsed.cleanedTitle.isEmpty) return;
@@ -121,7 +141,7 @@ class _AddTaskSheetState extends ConsumerState<AddTaskSheet> {
           title: parsed.cleanedTitle,
           priority: priority,
           projectId: projectId,
-          dueDate: parsed.dueDate,
+          dueDate: _effectiveDueDate,
           recurrenceRule: parsed.recurrenceRule,
           reminderMinuteOfDay: parsed.dueTimeMinuteOfDay,
         );
@@ -137,8 +157,8 @@ class _AddTaskSheetState extends ConsumerState<AddTaskSheet> {
     final parts = <String>[];
     if (_parsed.recurrenceRule != null) {
       parts.add(_describeRecurrence(_parsed.recurrenceRule!));
-    } else if (_parsed.dueDate != null) {
-      parts.add(DateFormat.MMMEd().format(_parsed.dueDate!));
+    } else if (_effectiveDueDate != null) {
+      parts.add(DateFormat.MMMEd().format(_effectiveDueDate!));
     }
     if (_parsed.dueTimeMinuteOfDay != null) {
       final h = _parsed.dueTimeMinuteOfDay! ~/ 60;
